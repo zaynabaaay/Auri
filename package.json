@@ -1,5 +1,5 @@
 {
-  "name": "personal-assistant-app",
+  "name": "auri",
   "main": "expo-router/entry",
   "version": "1.0.0",
   "private": true,
@@ -11,8 +11,7 @@
     "ios": "expo start --ios",
     "ios:device": "RUBYLIB=\"$PWD/scripts\" RUBYOPT=-rcocoapods-utf8 LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 PATH=\"$HOME/.rubies/ruby-3.3.12-expo/bin:$PATH\" expo run:ios --device",
     "web": "expo start --web",
-    "predeploy": "expo export --platform web",
-    "deploy": "gh-pages --nojekyll -d dist",
+    "export:web": "expo export --platform web",
     "test:assistant": "tsx --test tests/assistant-backend.test.mjs",
     "test:conversation-behavior": "tsx --test tests/assistant-conversation-behavior.test.mjs",
     "test:auth": "tsx --test tests/authentication.test.mjs",
@@ -61,7 +60,6 @@
     "embedded-postgres": "^18.4.0-beta.17",
     "eslint": "^9.0.0",
     "eslint-config-expo": "~57.0.1",
-    "gh-pages": "^6.3.0",
     "pg": "^8.23.0",
     "tsx": "^4.23.12",
     "typescript": "~6.0.3"

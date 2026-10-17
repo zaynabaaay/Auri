@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Personal Assistant",
+    "name": "Auri",
     "slug": "personal-assistant-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,6 +9,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
+      "icon": "./assets/images/auri-orb.png",
       "bundleIdentifier": "com.zaynabaaay.personalassistant",
       "supportsTablet": true,
       "infoPlist": {
@@ -48,7 +49,7 @@
       [
         "expo-calendar",
         {
-          "calendarPermission": "Allow Personal Assistant to read your calendar events.",
+          "calendarPermission": "Allow Auri to read your calendar events.",
           "remindersPermission": false,
           "writeOnlyAccess": false
         }
@@ -58,13 +59,12 @@
         {
           "cameraPermission": false,
           "microphonePermission": false,
-          "photosPermission": "Allow Personal Assistant to select images for your Projects."
+          "photosPermission": "Allow Auri to select images for your Projects."
         }
       ],
       "expo-web-browser"
     ],
     "experiments": {
-      "baseUrl": "/Personal-Assistant-App",
       "typedRoutes": true
     },
     "owner": "zaynabaaay",

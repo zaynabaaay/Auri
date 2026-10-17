@@ -1,6 +1,6 @@
-# Personal Assistant App
+# Auri
 
-A quiet, mobile-first personal assistant interface built with Expo, React Native, TypeScript, and Expo Router.
+Auri is an adaptive and customizable AI personal assistant built with Expo, React Native, TypeScript, and Expo Router.
 
 ## Run locally
 
@@ -20,7 +20,7 @@ receives the OpenAI API key.
 Configure these Vercel environment variables:
 
 - `OPENAI_API_KEY`: the project-scoped OpenAI API key
-- `ALLOWED_ORIGIN`: `https://zaynabaaay.github.io`
+- `ALLOWED_ORIGIN`: the allowed web client's exact origin (scheme, hostname, and optional port; no path)
 - `SUPABASE_URL`: the Supabase project URL
 - `SUPABASE_PUBLISHABLE_KEY`: the Supabase publishable key
 
@@ -34,17 +34,24 @@ service-role key to this project. The assistant sends the current Supabase
 access token in the `Authorization` header, and the Vercel Function verifies it
 before calling OpenAI.
 
-Build the GitHub Pages client with the public function endpoint:
+`ALLOWED_ORIGIN` must remain a valid URL origin even for native-only use because
+the backend validates this setting before accepting requests. Browser requests
+must match that origin; native requests use the existing app client marker and
+authenticated session. Configure the actual web origin when hosting the web client.
+Changing the example configuration does not update deployed backend settings.
+
+Export the web client with the public function endpoint:
 
 ```bash
-EXPO_PUBLIC_ASSISTANT_API_URL=https://your-vercel-project.vercel.app/api/assistant npm run deploy
+EXPO_PUBLIC_ASSISTANT_API_URL=https://your-vercel-project.vercel.app/api/assistant npm run export:web
 ```
 
 The production client defaults to
 `https://personal-assistant-app-ten.vercel.app/api/assistant`; the environment
 variable provides an override for other deployments. The public endpoint URL is
 safe to include in the client. Never prefix the OpenAI API key with `EXPO_PUBLIC_`
-or add it to GitHub Pages.
+or include it in a web export. The static client is exported to `dist/` for hosting
+at a web server's root path; this command does not publish it.
 
 ### Backend safeguards
 
@@ -75,7 +82,7 @@ authenticated session, never a service-role key. Meaningful domain operations
 are committed with `commit_project_changes`, which writes their entity changes
 and history event in one database transaction.
 
-Tina's server-executed Project tools support bounded reads and explicit,
+Auri's server-executed Project tools support bounded reads and explicit,
 controlled writes. Ordinary operational requests can create or update Project
 records, while replacing accepted knowledge or an active decision requires a
 confirmed replacement. The Project service suppresses obvious exact duplicates
@@ -157,11 +164,3 @@ Apply `20260821180000_create_general_memory.sql` after the existing conversation
 migrations. Its RLS policies and RPCs derive ownership from `auth.uid()`, deny
 anonymous access, and use the authenticated publishable-key client rather than
 a service-role bypass.
-
-## Deploy to GitHub Pages
-
-```bash
-npm run deploy
-```
-
-The production site is exported with the `/Personal-Assistant-App` base URL and published to the `gh-pages` branch.
