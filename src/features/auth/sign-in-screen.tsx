@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -138,6 +139,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   keyboardView: { flex: 1, justifyContent: 'center' },
-  safeArea: { backgroundColor: '#EAF4FF', flex: 1 },
+  safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   title: { color: '#343330', fontSize: 32, marginTop: 8 },
 });

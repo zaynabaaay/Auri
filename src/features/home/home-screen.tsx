@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { useEffect, useRef, useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -583,7 +584,7 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: '#EAF4FF', flex: 1 },
+  safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   safeAreaWeb: {
     left: 0,
     overflow: 'hidden',

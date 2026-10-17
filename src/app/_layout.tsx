@@ -1,5 +1,6 @@
 import 'react-native-url-polyfill/auto';
 
+import { APP_BACKGROUND } from '@/colors';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
@@ -22,7 +23,7 @@ function AuthenticatedRouter() {
     <Stack
       screenOptions={{
         animation: 'fade',
-        contentStyle: { backgroundColor: '#EAF4FF' },
+        contentStyle: { backgroundColor: APP_BACKGROUND },
         headerShown: false,
       }}
     />

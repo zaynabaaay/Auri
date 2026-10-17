@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { useEffect, useRef, useState } from 'react';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -364,7 +365,7 @@ export default function ProjectScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: '#EAF4FF', flex: 1 },
+  safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   safeAreaWeb: { left: 0, overflow: 'hidden', position: 'absolute', right: 0 },
   keyboardView: { flex: 1, position: 'relative' },
   workspace: { flex: 1, position: 'relative' },
@@ -429,12 +430,12 @@ const styles = StyleSheet.create({
   destructiveText: { color: '#E5988E', fontSize: 16 },
   cancelRow: { borderBottomWidth: 0, marginTop: 7 },
   cancelText: { color: '#98989E', fontSize: 16, textAlign: 'center' },
-  filesAccess: { backgroundColor: '#080809', flex: 1 },
+  filesAccess: { backgroundColor: APP_BACKGROUND, flex: 1 },
   filesAccessHeader: { alignItems: 'center', borderBottomColor: '#202023', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 68, paddingHorizontal: 20 },
-  filesAccessTitle: { color: '#F1F1F3', fontSize: 17, fontWeight: '600' },
+  filesAccessTitle: { color: '#25364A', fontSize: 17, fontWeight: '600' },
   filesAccessNote: { color: '#6E6E74', fontSize: 11, marginTop: 3 },
   filesAccessClose: { alignItems: 'center', minHeight: 44, justifyContent: 'center', paddingLeft: 18 },
-  filesAccessCloseText: { color: '#A8B9D4', fontSize: 14, fontWeight: '600' },
+  filesAccessCloseText: { color: '#43566C', fontSize: 14, fontWeight: '600' },
   filesAccessContent: { paddingTop: 8 },
   pressed: { opacity: 0.58 },
 });

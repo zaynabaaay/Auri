@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -60,9 +61,9 @@ export default function ShellLayout() {
 }
 
 const styles = StyleSheet.create({
-  scene: { backgroundColor: '#EAF4FF' },
+  scene: { backgroundColor: APP_BACKGROUND },
   tabBar: {
-    backgroundColor: '#EAF4FF',
+    backgroundColor: APP_BACKGROUND,
     borderTopColor: '#C8DAEC',
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,

@@ -1,0 +1,2 @@
+export const APP_BACKGROUND = '#F3EAE3';
+export const MESSAGE_INPUT_BACKGROUND = '#FDF9F6';

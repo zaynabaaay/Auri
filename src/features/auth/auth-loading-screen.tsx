@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 export default function AuthLoadingScreen() {
@@ -11,7 +12,7 @@ export default function AuthLoadingScreen() {
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: '#EAF4FF',
+    backgroundColor: APP_BACKGROUND,
     flex: 1,
     justifyContent: 'center',
   },

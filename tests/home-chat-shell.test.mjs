@@ -4,6 +4,7 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 
+import { APP_BACKGROUND, MESSAGE_INPUT_BACKGROUND } from '../src/colors.ts';
 import { messageSendEnabled } from '../src/features/home/message-composer-layout.ts';
 import { finishConversationLifecycle } from '../src/services/conversations/conversation-finish-lifecycle.ts';
 
@@ -127,9 +128,9 @@ test('late Project processing cannot unlock a newer save or overwrite its notice
   assert.equal(state.completionNotice, 'Conversation saved to Chats.');
 });
 
-test('Home is a minimal pale-blue conversation shell without the dashboard clock', async () => {
+test('Home is a minimal conversation shell with the approved background without the dashboard clock', async () => {
   const home = await read('../src/features/home/home-screen.tsx');
-  assert.match(home, /backgroundColor: '#EAF4FF'/);
+  assert.match(home, /backgroundColor: APP_BACKGROUND/);
   assert.match(home, /<StatusBar style="dark"/);
   assert.match(home, /<Text style=\{styles\.headerTitle\}>Auri<\/Text>/);
   assert.doesNotMatch(home, /TIME_FORMATTER|DATE_FORMATTER|useCurrentDate|styles\.time|styles\.date/);
@@ -229,6 +230,32 @@ test('keyboard, safe-area, active restoration, and Chats routes remain wired', a
   assert.match(composer, /keyboardAppearance="dark"/);
   assert.match(chats, /<ChatsList/);
   assert.match(detail, /record\.conversation\.title/);
-  assert.match(chats, /backgroundColor: '#EAF4FF'/);
-  assert.match(detail, /backgroundColor: '#EAF4FF'/);
+  assert.match(chats, /backgroundColor: APP_BACKGROUND/);
+  assert.match(detail, /backgroundColor: APP_BACKGROUND/);
+});
+
+
+test('approved page and message-input colours are shared across screens', async () => {
+  assert.equal(APP_BACKGROUND, '#F3EAE3');
+  assert.equal(MESSAGE_INPUT_BACKGROUND, '#FDF9F6');
+  const screens = [
+    'app/_layout.tsx', 'app/(shell)/_layout.tsx', 'app/+html.tsx',
+    'app/account.tsx', 'app/calendar-test.tsx',
+    'app/history/index.tsx', 'app/history/[id].tsx',
+    'features/auth/auth-loading-screen.tsx', 'features/auth/sign-in-screen.tsx',
+    'features/home/home-screen.tsx', 'features/home/chats-drawer.tsx',
+    'features/projects/new-project-screen.tsx', 'features/projects/project-screen.tsx',
+    'features/projects/projects-screen.tsx',
+  ];
+  for (const screen of screens) {
+    const source = await read(`../src/${screen}`);
+    assert.match(source, /backgroundColor: APP_BACKGROUND/, screen);
+    assert.doesNotMatch(source, /#EAF4FF/, screen);
+  }
+  const composer = await read('../src/features/home/message-composer.tsx');
+  assert.match(composer, /backgroundColor: MESSAGE_INPUT_BACKGROUND/);
+  assert.match(composer, /input: \{\s+color: '#25364A'/);
+  assert.doesNotMatch(composer, /#19191B|#F7F7F8/);
+  const chats = await read('../src/features/chats/chats-list.tsx');
+  assert.match(chats, /compactTitle: \{ fontSize:/);
 });

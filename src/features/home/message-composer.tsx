@@ -1,3 +1,4 @@
+import { MESSAGE_INPUT_BACKGROUND } from '@/colors';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
@@ -125,7 +126,7 @@ const styles = StyleSheet.create({
   },
   composer: {
     alignItems: 'flex-end',
-    backgroundColor: '#19191B',
+    backgroundColor: MESSAGE_INPUT_BACKGROUND,
     borderColor: '#303034',
     borderRadius: 25,
     borderWidth: StyleSheet.hairlineWidth,
@@ -137,7 +138,7 @@ const styles = StyleSheet.create({
     paddingTop: 5,
   },
   input: {
-    color: '#F7F7F8',
+    color: '#25364A',
     fontSize: 16,
     lineHeight: 22,
     maxHeight: MESSAGE_INPUT_MAX_HEIGHT,

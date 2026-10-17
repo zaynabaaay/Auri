@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -98,7 +99,7 @@ export default function NewProjectScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: '#EAF4FF', flex: 1 },
+  safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   flex: { flex: 1 },
   header: { alignItems: 'center', borderBottomColor: '#171719', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 54, paddingHorizontal: 12 },
   headerButton: { justifyContent: 'center', minHeight: 44, minWidth: 66 },

@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
     top: 0,
   },
   drawer: {
-    backgroundColor: '#0D0D0F',
+    backgroundColor: APP_BACKGROUND,
     borderRightColor: '#262629',
     borderRightWidth: StyleSheet.hairlineWidth,
     bottom: 0,
@@ -181,12 +182,12 @@ const styles = StyleSheet.create({
     minHeight: 58,
     paddingHorizontal: 18,
   },
-  heading: { color: '#F7F7F8', fontSize: 19, fontWeight: '600' },
+  heading: { color: '#25364A', fontSize: 19, fontWeight: '600' },
   closeButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
-  closeText: { color: '#A1A1A6', fontSize: 28, fontWeight: '300', lineHeight: 30 },
+  closeText: { color: '#43566C', fontSize: 28, fontWeight: '300', lineHeight: 30 },
   centered: { alignItems: 'center', flex: 1, justifyContent: 'center', padding: 28 },
-  error: { color: '#E39A8E', fontSize: 13, textAlign: 'center' },
-  emptyTitle: { color: '#F0F0F2', fontSize: 16, fontWeight: '500' },
+  error: { color: '#A43D32', fontSize: 13, textAlign: 'center' },
+  emptyTitle: { color: '#25364A', fontSize: 16, fontWeight: '500' },
   emptyBody: { color: '#85858A', fontSize: 13, lineHeight: 19, marginTop: 7, textAlign: 'center' },
   footer: {
     borderTopColor: '#242427',
@@ -199,6 +200,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
   },
-  fullChatsText: { color: '#A8A8AD', fontSize: 13, fontWeight: '500' },
+  fullChatsText: { color: '#43566C', fontSize: 13, fontWeight: '500' },
   pressed: { opacity: 0.55 },
 });

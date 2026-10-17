@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { useCallback, useState } from 'react';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -84,7 +85,7 @@ export default function ChatsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: '#EAF4FF', flex: 1 },
+  safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   header: {
     alignItems: 'center',
     flexDirection: 'row',

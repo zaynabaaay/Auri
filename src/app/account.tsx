@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -64,6 +65,6 @@ const styles = StyleSheet.create({
   detail: { color: '#77746D', fontSize: 15, marginTop: 10 },
   error: { color: '#8B5E52', fontSize: 14, marginTop: 20 },
   eyebrow: { color: '#8B8983', fontSize: 12, textTransform: 'uppercase' },
-  safeArea: { backgroundColor: '#EAF4FF', flex: 1 },
+  safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   title: { color: '#343330', fontSize: 28, marginTop: 8 },
 });

@@ -1,3 +1,4 @@
+import { APP_BACKGROUND } from '@/colors';
 import { Redirect } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -135,6 +136,6 @@ const styles = StyleSheet.create({
   message: { color: '#5B5953', fontSize: 15, lineHeight: 22 },
   results: { marginTop: 30 },
   resultStatus: { color: '#8B8983', fontSize: 13, marginBottom: 12 },
-  safeArea: { backgroundColor: '#EAF4FF', flex: 1 },
+  safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   title: { color: '#343330', fontSize: 28, marginTop: 6 },
 });
