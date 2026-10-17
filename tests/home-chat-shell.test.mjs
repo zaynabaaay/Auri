@@ -1,8 +1,131 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
+
+import { messageSendEnabled } from '../src/features/home/message-composer-layout.ts';
+import { finishConversationLifecycle } from '../src/services/conversations/conversation-finish-lifecycle.ts';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((res, rej) => { resolve = res; reject = rej; });
+  return { promise, resolve, reject };
+}
+
+async function homeFinishHarness(service, process) {
+  // Execute the actual Home handler with controlled I/O, without mocking its logic.
+  const source = await read('../src/features/home/home-screen.tsx');
+  const file = ts.createSourceFile('home-screen.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let handler;
+  function visit(node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(file) === 'finishConversation') {
+      handler = node.initializer;
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(file);
+  assert.ok(handler);
+  const state = {
+    messages: [{ content: 'Existing conversation' }],
+    activeConversation: { id: 'old-chat' },
+    activeRequestId: { current: 0 },
+    isResponding: false,
+    isFinishing: false,
+    isSavingMessage: false,
+    isRestoring: false,
+    persistenceError: null,
+    completionNotice: null,
+    finishError: null,
+    conversationService: service,
+    finishConversationLifecycle,
+    processCompletedConversation: process,
+    processConversationMemory: async () => undefined,
+    setIsFinishing: (value) => { state.isFinishing = value; },
+    setFinishError: (value) => { state.finishError = value; },
+    setCompletionNotice: (value) => { state.completionNotice = value; },
+    resetActiveConversation: () => {
+      state.activeRequestId.current += 1;
+      state.messages = [];
+      state.activeConversation = { id: 'new-chat' };
+    },
+  };
+  const code = ts.transpileModule(`(${handler.getText(file)})`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  return { state, finish: runInNewContext(code, state) };
+}
+
+test('saved Home chat releases Send while Project processing is still pending', async () => {
+  const save = deferred();
+  const background = deferred();
+  const started = deferred();
+  let saves = 0;
+  const { state, finish } = await homeFinishHarness({
+    finishConversation: () => { saves += 1; return save.promise; },
+  }, () => { started.resolve(); return background.promise; });
+
+  const pending = finish();
+  assert.equal(messageSendEnabled('Hello', state), false, 'a real save must block Send');
+  await finish();
+  assert.equal(saves, 1, 'duplicate finalization must remain blocked');
+  save.resolve({ conversation: { id: 'old-chat' } });
+  await started.promise;
+  assert.equal(state.completionNotice, 'Conversation saved to Chats.');
+  assert.equal(state.messages.length, 0);
+  assert.equal(messageSendEnabled('Hello', state), true, 'post-save processing must not lock the new chat');
+  background.resolve({ status: 'processed' });
+  await pending;
+});
+
+test('failed Home save preserves the transcript and releases the saving lock', async () => {
+  const { state, finish } = await homeFinishHarness({
+    finishConversation: async () => { throw new Error('save unavailable'); },
+  }, async () => assert.fail('processing must not run after a failed save'));
+  await finish();
+  assert.equal(state.messages.length, 1);
+  assert.equal(state.activeConversation.id, 'old-chat');
+  assert.equal(state.completionNotice, null);
+  assert.match(state.finishError, /Nothing was cleared/);
+  assert.equal(messageSendEnabled('Hello', state), true);
+});
+
+test('late Project processing cannot unlock a newer save or overwrite its notices', async () => {
+  const background = deferred();
+  const started = deferred();
+  const nextSave = deferred();
+  let saves = 0;
+  const { state, finish } = await homeFinishHarness({
+    finishConversation: () => ++saves === 1
+      ? Promise.resolve({ conversation: { id: 'old-chat' } }) : nextSave.promise,
+  }, (id) => {
+    if (id !== 'old-chat') return Promise.resolve({ status: 'processed' });
+    started.resolve();
+    return background.promise;
+  });
+  const first = finish();
+  await started.promise;
+  assert.equal(messageSendEnabled('Hello', state), true);
+
+  // A new message advances the existing request generation before the next Finish.
+  state.activeRequestId.current += 1;
+  state.messages = [{ content: 'New conversation' }];
+  const second = finish();
+  assert.equal(saves, 2);
+  assert.equal(messageSendEnabled('Hello', state), false);
+  background.reject(new Error('old processing failed'));
+  await first;
+  assert.equal(messageSendEnabled('Hello', state), false, 'the newer save still owns its lock');
+  assert.equal(state.completionNotice, null);
+  assert.equal(state.finishError, null);
+  nextSave.resolve({ conversation: { id: 'new-chat' } });
+  await second;
+  assert.equal(messageSendEnabled('Hello', state), true);
+  assert.equal(state.completionNotice, 'Conversation saved to Chats.');
+});
 
 test('Home is a minimal pale-blue conversation shell without the dashboard clock', async () => {
   const home = await read('../src/features/home/home-screen.tsx');

@@ -320,7 +320,7 @@ export default function HomeScreen() {
   const sendMessage = async () => {
     const text = draft.trim();
 
-    if (!text || isResponding || isSavingMessage || isRestoring || !user?.id) {
+    if (!text || isResponding || isSavingMessage || isRestoring || isFinishing || !user?.id) {
       return;
     }
 
@@ -453,15 +453,22 @@ export default function HomeScreen() {
     setFinishError(null);
     setCompletionNotice(null);
 
+    let persistedRequestId: number | undefined;
     try {
       const result = await finishConversationLifecycle({
         active: activeConversation,
-        onPersisted: () => setCompletionNotice('Conversation saved to Chats.'),
+        onPersisted: () => {
+          persistedRequestId = activeRequestId.current;
+          // The verified save is complete; Project processing must not lock the new chat.
+          setIsFinishing(false);
+          setCompletionNotice('Conversation saved to Chats.');
+        },
         process: processCompletedConversation,
         processMemory: processConversationMemory,
         reset: resetActiveConversation,
         service: conversationService,
       });
+      if (activeRequestId.current !== persistedRequestId) return;
       if (result.processingStatus === 'processing') {
         setCompletionNotice(
           'Conversation saved to Chats. Project organization is still in progress.',
@@ -472,9 +479,12 @@ export default function HomeScreen() {
         );
       }
     } catch {
-      setFinishError('Conversation could not be saved. Nothing was cleared; please try again.');
+      if (persistedRequestId === undefined) {
+        setFinishError('Conversation could not be saved. Nothing was cleared; please try again.');
+      }
     } finally {
-      setIsFinishing(false);
+      // A late processing result must not release a newer conversation's save lock.
+      if (persistedRequestId === undefined) setIsFinishing(false);
     }
   };
 
