@@ -1,3 +1,4 @@
+export const CHAT_MAX_WIDTH = 720;
 export const MESSAGE_INPUT_MIN_HEIGHT = 39;
 export const MESSAGE_INPUT_MAX_HEIGHT = 108;
 

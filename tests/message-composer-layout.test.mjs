@@ -3,12 +3,40 @@ import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 
 import {
+  CHAT_MAX_WIDTH,
   MESSAGE_INPUT_MAX_HEIGHT,
   MESSAGE_INPUT_MIN_HEIGHT,
   messageInputHeight,
   messageInputScrollEnabled,
   messageSendEnabled,
 } from '../src/features/home/message-composer-layout.ts';
+
+test('conversation and composer share a responsive centered column without constraining the shell', async () => {
+  const [home, composer, shell] = await Promise.all([
+    readFile(new URL('../src/features/home/home-screen.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/home/message-composer.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/app/(shell)/_layout.tsx', import.meta.url), 'utf8'),
+  ]);
+
+  assert.equal(CHAT_MAX_WIDTH, 720);
+  for (const [source, styleName] of [[home, 'conversationContent'], [composer, 'composerShell']]) {
+    assert.match(source, /import \{[\s\S]*CHAT_MAX_WIDTH[\s\S]*\} from '\.\/message-composer-layout'/);
+    const style = source.match(new RegExp(`${styleName}: \\{([^}]+)\\}`))?.[1];
+    assert.ok(style, `${styleName} must define the column directly`);
+    assert.match(style, /alignSelf: 'center'/);
+    assert.match(style, /maxWidth: CHAT_MAX_WIDTH/);
+    assert.match(style, /width: '100%'/);
+    assert.doesNotMatch(style, /(?:minWidth|flexBasis):/);
+  }
+
+  assert.match(home, /contentContainerStyle=\{styles\.conversationContent\}/);
+  assert.match(composer, /<View style=\{styles\.composerShell\} testID="composer-shell">/);
+  assert.match(home, /userMessage: \{\s*alignSelf: 'flex-end'/);
+  assert.match(home, /assistantMessage: \{ alignSelf: 'flex-start'/);
+  assert.match(home, /conversation: \{ flex: 1 \}/);
+  assert.doesNotMatch(home.match(/header: \{([^}]+)\}/)?.[1] ?? '', /maxWidth|width:/);
+  assert.doesNotMatch(shell, /CHAT_MAX_WIDTH|maxWidth:/);
+});
 
 test('the composer grows with wrapped content, caps its height, and then scrolls', () => {
   assert.equal(messageInputHeight(12), MESSAGE_INPUT_MIN_HEIGHT);

@@ -1,6 +1,7 @@
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
+  CHAT_MAX_WIDTH,
   MESSAGE_INPUT_MAX_HEIGHT,
   MESSAGE_INPUT_MIN_HEIGHT,
   messageInputScrollEnabled,
@@ -114,7 +115,14 @@ export function MessageComposer({
 }
 
 const styles = StyleSheet.create({
-  composerShell: { paddingBottom: 10, paddingHorizontal: 12, paddingTop: 4 },
+  composerShell: {
+    alignSelf: 'center',
+    maxWidth: CHAT_MAX_WIDTH,
+    paddingBottom: 10,
+    paddingHorizontal: 12,
+    paddingTop: 4,
+    width: '100%',
+  },
   composer: {
     alignItems: 'flex-end',
     backgroundColor: '#19191B',

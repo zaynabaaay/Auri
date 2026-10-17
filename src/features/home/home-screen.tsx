@@ -29,6 +29,7 @@ import {
 import { processConversationMemory } from '@/services/memory';
 
 import {
+  CHAT_MAX_WIDTH,
   MESSAGE_INPUT_MIN_HEIGHT,
   messageInputHeight,
   messageSendEnabled,
@@ -615,11 +616,14 @@ const styles = StyleSheet.create({
   },
   conversation: { flex: 1 },
   conversationContent: {
+    alignSelf: 'center',
     flexGrow: 1,
     justifyContent: 'flex-end',
+    maxWidth: CHAT_MAX_WIDTH,
     paddingBottom: 28,
     paddingHorizontal: 20,
     paddingTop: 24,
+    width: '100%',
   },
   userMessage: {
     alignSelf: 'flex-end',
