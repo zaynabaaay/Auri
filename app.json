@@ -9,6 +9,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
+      "icon": "./assets/images/auri-orb.png",
       "bundleIdentifier": "com.zaynabaaay.personalassistant",
       "supportsTablet": true,
       "infoPlist": {
