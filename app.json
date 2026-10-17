@@ -65,7 +65,6 @@
       "expo-web-browser"
     ],
     "experiments": {
-      "baseUrl": "/Personal-Assistant-App",
       "typedRoutes": true
     },
     "owner": "zaynabaaay",
