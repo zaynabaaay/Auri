@@ -1,4 +1,5 @@
 import { APP_BACKGROUND } from '@/colors';
+import { HEADING_FONT_FAMILY } from '@/typography';
 import { useEffect, useRef, useState } from 'react';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
   coverRulePrimary: { backgroundColor: '#2A2A2C', height: StyleSheet.hairlineWidth, left: 18, opacity: 0.72, position: 'absolute', right: 48, top: 34 },
   coverRuleSecondary: { backgroundColor: '#202022', bottom: 25, height: StyleSheet.hairlineWidth, left: 48, opacity: 0.9, position: 'absolute', right: 18 },
   identityCopy: { paddingBottom: 20, paddingHorizontal: 20, paddingTop: 20 },
-  projectName: { color: '#25364A', fontSize: 30, fontWeight: '600', letterSpacing: -0.8, lineHeight: 35 },
+  projectName: { color: '#25364A', fontFamily: HEADING_FONT_FAMILY, fontSize: 30, fontWeight: '600', letterSpacing: -0.8, lineHeight: 35 },
   projectDescription: { color: '#43566C', fontSize: 15, lineHeight: 21, marginTop: 8, maxWidth: 560 },
   overview: { alignItems: 'center', minHeight: 220, paddingBottom: 48, paddingHorizontal: 20, paddingTop: 28 },
   overviewContent: { maxWidth: 640, width: '100%' },

@@ -1,4 +1,5 @@
 import { APP_BACKGROUND } from '@/colors';
+import { HEADING_FONT_FAMILY } from '@/typography';
 import { useCallback, useMemo, useState } from 'react';
 import { type Href, useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -146,7 +147,7 @@ const styles = StyleSheet.create({
   safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   header: { alignItems: 'center', borderBottomColor: '#171719', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', minHeight: 64, paddingHorizontal: 18 },
   titleBlock: { flex: 1, minWidth: 0 },
-  title: { color: '#25364A', fontSize: 24, fontWeight: '600', letterSpacing: -0.6 },
+  title: { color: '#25364A', fontFamily: HEADING_FONT_FAMILY, fontSize: 24, fontWeight: '600', letterSpacing: -0.6 },
   subtitle: { color: '#6F6F75', fontSize: 12, marginTop: 2 },
   newButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 64 },
   newButtonText: { color: '#285A91', fontSize: 14, fontWeight: '600' },
@@ -163,7 +164,7 @@ const styles = StyleSheet.create({
   fallbackInitial: { color: '#A3B9DC', fontSize: 20, fontWeight: '500' },
   projectCopy: { flex: 1, marginLeft: 13, minWidth: 0 },
   projectHeading: { alignItems: 'center', flexDirection: 'row', minWidth: 0 },
-  projectName: { color: '#25364A', flexShrink: 1, fontSize: 16, fontWeight: '600', letterSpacing: -0.2 },
+  projectName: { color: '#25364A', flexShrink: 1, fontFamily: HEADING_FONT_FAMILY, fontSize: 16, fontWeight: '600', letterSpacing: -0.2 },
   projectDescription: { color: '#43566C', fontSize: 13, lineHeight: 18, marginTop: 3 },
   recency: { color: '#5F6268', fontSize: 11, marginTop: 6 },
   chevron: { color: '#4E4E54', fontSize: 24, marginLeft: 9 },
