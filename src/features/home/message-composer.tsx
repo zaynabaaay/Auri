@@ -127,9 +127,7 @@ const styles = StyleSheet.create({
   composer: {
     alignItems: 'flex-end',
     backgroundColor: MESSAGE_INPUT_BACKGROUND,
-    borderColor: '#303034',
     borderRadius: 25,
-    borderWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     minHeight: 50,
     paddingBottom: 5,
