@@ -1,4 +1,4 @@
-import { APP_BACKGROUND } from '@/colors';
+import { APP_BACKGROUND, ASSISTANT_MESSAGE_BACKGROUND, MESSAGE_TEXT_COLOR, USER_MESSAGE_BACKGROUND } from '@/colors';
 import { HEADING_FONT_FAMILY } from '@/typography';
 import { useEffect, useRef, useState } from 'react';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
@@ -411,10 +411,10 @@ const styles = StyleSheet.create({
   transcript: { flex: 1 },
   transcriptContent: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 12, paddingHorizontal: 14, paddingTop: 12 },
   tinaEmpty: { color: '#74747A', fontSize: 13, lineHeight: 19, marginBottom: 8, textAlign: 'center' },
-  userMessage: { alignSelf: 'flex-end', backgroundColor: '#202023', borderRadius: 17, borderTopRightRadius: 6, marginBottom: 10, maxWidth: '84%', paddingHorizontal: 13, paddingVertical: 9 },
-  assistantMessage: { alignSelf: 'flex-start', marginBottom: 13, maxWidth: '90%', paddingHorizontal: 2, paddingVertical: 2 },
-  userText: { color: '#F7F7F8', fontSize: 15, lineHeight: 21 },
-  assistantText: { color: '#E8E8EA', fontSize: 15, lineHeight: 22 },
+  userMessage: { alignSelf: 'flex-end', backgroundColor: USER_MESSAGE_BACKGROUND, borderRadius: 17, borderTopRightRadius: 6, marginBottom: 10, maxWidth: '84%', paddingHorizontal: 13, paddingVertical: 9 },
+  assistantMessage: { alignSelf: 'flex-start', backgroundColor: ASSISTANT_MESSAGE_BACKGROUND, borderRadius: 17, marginBottom: 13, maxWidth: '90%', paddingHorizontal: 13, paddingVertical: 9 },
+  userText: { color: MESSAGE_TEXT_COLOR, fontSize: 15, lineHeight: 21 },
+  assistantText: { color: MESSAGE_TEXT_COLOR, fontSize: 15, lineHeight: 22 },
   thinking: { alignItems: 'center', flexDirection: 'row', gap: 5, height: 24, paddingLeft: 3 },
   dot: { backgroundColor: '#8A8A90', borderRadius: 3, height: 5, width: 5 },
   error: { backgroundColor: '#0C0C0E', bottom: 76, color: '#E39A8E', fontSize: 12, left: 18, paddingVertical: 6, position: 'absolute', right: 18, textAlign: 'center' },

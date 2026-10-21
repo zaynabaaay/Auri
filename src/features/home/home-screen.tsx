@@ -1,4 +1,4 @@
-import { APP_BACKGROUND } from '@/colors';
+import { APP_BACKGROUND, ASSISTANT_MESSAGE_BACKGROUND, MESSAGE_TEXT_COLOR, USER_MESSAGE_BACKGROUND } from '@/colors';
 import { useEffect, useRef, useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -638,17 +638,25 @@ const styles = StyleSheet.create({
   },
   userMessage: {
     alignSelf: 'flex-end',
-    backgroundColor: '#242426',
+    backgroundColor: USER_MESSAGE_BACKGROUND,
     borderRadius: 18,
     marginTop: 20,
     maxWidth: '82%',
     paddingHorizontal: 15,
     paddingVertical: 10,
   },
-  userMessageText: { color: '#F4F4F5', fontSize: 16, lineHeight: 23 },
-  assistantMessage: { alignSelf: 'flex-start', marginTop: 25, maxWidth: '94%' },
+  userMessageText: { color: MESSAGE_TEXT_COLOR, fontSize: 16, lineHeight: 23 },
+  assistantMessage: {
+    alignSelf: 'flex-start',
+    backgroundColor: ASSISTANT_MESSAGE_BACKGROUND,
+    borderRadius: 18,
+    marginTop: 25,
+    maxWidth: '94%',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+  },
   assistantMessageText: {
-    color: '#25364A',
+    color: MESSAGE_TEXT_COLOR,
     fontSize: 17,
     letterSpacing: -0.1,
     lineHeight: 27,

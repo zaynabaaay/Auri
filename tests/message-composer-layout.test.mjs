@@ -32,7 +32,7 @@ test('conversation and composer share a responsive centered column without const
   assert.match(home, /contentContainerStyle=\{styles\.conversationContent\}/);
   assert.match(composer, /<View style=\{styles\.composerShell\} testID="composer-shell">/);
   assert.match(home, /userMessage: \{\s*alignSelf: 'flex-end'/);
-  assert.match(home, /assistantMessage: \{ alignSelf: 'flex-start'/);
+  assert.match(home, /assistantMessage: \{\s*alignSelf: 'flex-start'/);
   assert.match(home, /conversation: \{ flex: 1 \}/);
   assert.doesNotMatch(home.match(/header: \{([^}]+)\}/)?.[1] ?? '', /maxWidth|width:/);
   assert.doesNotMatch(shell, /CHAT_MAX_WIDTH|maxWidth:/);
