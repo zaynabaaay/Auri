@@ -1,4 +1,4 @@
-export const APP_BACKGROUND = '#F3EAE3';
+export const APP_BACKGROUND = '#F8F5F0';
 export const MESSAGE_INPUT_BACKGROUND = '#FDF9F6';
 export const USER_MESSAGE_BACKGROUND = '#E8D7CC';
 export const ASSISTANT_MESSAGE_BACKGROUND = '#FCF4F0';

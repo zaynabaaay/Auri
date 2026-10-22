@@ -236,7 +236,7 @@ test('keyboard, safe-area, active restoration, and Chats routes remain wired', a
 
 
 test('approved page and message-input colours are shared across screens', async () => {
-  assert.equal(APP_BACKGROUND, '#F3EAE3');
+  assert.equal(APP_BACKGROUND, '#F8F5F0');
   assert.equal(MESSAGE_INPUT_BACKGROUND, '#FDF9F6');
   const screens = [
     'app/_layout.tsx', 'app/(shell)/_layout.tsx', 'app/+html.tsx',
