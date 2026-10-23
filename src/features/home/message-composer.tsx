@@ -1,4 +1,4 @@
-import { MESSAGE_INPUT_BACKGROUND } from '@/colors';
+import { DARK_BROWN, LIGHT_SAGE, MESSAGE_INPUT_BACKGROUND } from '@/colors';
 import { Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
@@ -20,15 +20,13 @@ export type MessageComposerProps = {
   onToggleListening: () => void;
 };
 
-const TINA_ACCENT = '#8AB4F8';
-
-function MicrophoneIcon({ active }: { active: boolean }) {
+function MicrophoneIcon() {
   return (
     <View style={styles.micIcon}>
-      <View style={[styles.micCapsule, active && styles.micCapsuleActive]} />
-      <View style={[styles.micArc, active && styles.micArcActive]} />
-      <View style={[styles.micStem, active && styles.micStemActive]} />
-      <View style={[styles.micBase, active && styles.micBaseActive]} />
+      <View style={styles.micCapsule} />
+      <View style={styles.micArc} />
+      <View style={styles.micStem} />
+      <View style={styles.micBase} />
     </View>
   );
 }
@@ -92,7 +90,7 @@ export function MessageComposer({
             pressed && styles.pressed,
           ]}
         >
-          <MicrophoneIcon active={isListening} />
+          <MicrophoneIcon />
         </Pressable>
 
         <Pressable
@@ -136,7 +134,7 @@ const styles = StyleSheet.create({
     paddingTop: 5,
   },
   input: {
-    color: '#25364A',
+    color: DARK_BROWN,
     fontSize: 16,
     lineHeight: 22,
     maxHeight: MESSAGE_INPUT_MAX_HEIGHT,
@@ -173,38 +171,30 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     width: 40,
   },
-  iconButtonActive: { backgroundColor: '#202B3A' },
+  iconButtonActive: { backgroundColor: LIGHT_SAGE },
   micIcon: { alignItems: 'center', height: 22, justifyContent: 'flex-start', width: 18 },
   micCapsule: {
-    borderColor: '#8C8C91',
+    borderColor: DARK_BROWN,
     borderRadius: 5,
     borderWidth: 1.5,
     height: 11,
     width: 7,
   },
-  micCapsuleActive: { borderColor: TINA_ACCENT },
   micArc: {
-    borderBottomColor: '#8C8C91',
+    borderBottomColor: DARK_BROWN,
     borderBottomLeftRadius: 7,
     borderBottomRightRadius: 7,
     borderBottomWidth: 1.5,
-    borderLeftColor: '#8C8C91',
+    borderLeftColor: DARK_BROWN,
     borderLeftWidth: 1.5,
-    borderRightColor: '#8C8C91',
+    borderRightColor: DARK_BROWN,
     borderRightWidth: 1.5,
     height: 8,
     marginTop: -5,
     width: 13,
   },
-  micArcActive: {
-    borderBottomColor: TINA_ACCENT,
-    borderLeftColor: TINA_ACCENT,
-    borderRightColor: TINA_ACCENT,
-  },
-  micStem: { backgroundColor: '#8C8C91', height: 3, width: 1.5 },
-  micStemActive: { backgroundColor: TINA_ACCENT },
-  micBase: { backgroundColor: '#8C8C91', borderRadius: 1, height: 1.5, width: 7 },
-  micBaseActive: { backgroundColor: TINA_ACCENT },
+  micStem: { backgroundColor: DARK_BROWN, height: 3, width: 1.5 },
+  micBase: { backgroundColor: DARK_BROWN, borderRadius: 1, height: 1.5, width: 7 },
   sendButton: { backgroundColor: '#DFC0AC', marginLeft: 3 },
   sendButtonDisabled: { backgroundColor: '#E5DED9' },
   sendButtonPressed: { opacity: 0.72, transform: [{ scale: 0.96 }] },

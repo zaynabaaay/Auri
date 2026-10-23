@@ -1,4 +1,4 @@
-import { APP_BACKGROUND } from '@/colors';
+import { APP_BACKGROUND, DARK_BROWN, EARTHY_CLAY } from '@/colors';
 import { useEffect, useRef, useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -45,7 +45,6 @@ type HomeHeaderProps = {
   onOpenDrawer: () => void;
 };
 
-const TINA_ACCENT = '#285A91';
 const KEYBOARD_AVOIDING_BEHAVIOR =
   Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined;
 function HomeHeader({
@@ -537,7 +536,7 @@ const styles = StyleSheet.create({
   welcome: { flex: 1, justifyContent: 'center', paddingBottom: 48, paddingHorizontal: 24 },
   welcomeGreeting: {
     alignSelf: 'center',
-    color: '#25364A',
+    color: DARK_BROWN,
     fontFamily: HEADING_FONT_FAMILY,
     fontSize: 28,
     lineHeight: 36,
@@ -554,7 +553,7 @@ const styles = StyleSheet.create({
   },
   headerIconButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   menuIcon: { gap: 6, width: 20 },
-  menuLine: { backgroundColor: '#25364A', borderRadius: 1, height: 1.5, width: 20 },
+  menuLine: { backgroundColor: DARK_BROWN, borderRadius: 1, height: 1.5, width: 20 },
   menuLineShort: { width: 14 },
   newChatButton: {
     alignItems: 'flex-end',
@@ -563,8 +562,8 @@ const styles = StyleSheet.create({
     minWidth: 72,
     paddingHorizontal: 4,
   },
-  newChatText: { color: TINA_ACCENT, fontSize: 13, fontWeight: '600' },
-  newChatTextDisabled: { color: '#55555A' },
+  newChatText: { color: EARTHY_CLAY, fontSize: 13, fontWeight: '600' },
+  newChatTextDisabled: { opacity: 0.7 },
   finishError: { color: '#A43D32', fontSize: 12, marginHorizontal: 22, marginTop: 12 },
   completionNotice: { color: '#45633E', fontSize: 12, marginHorizontal: 22, marginTop: 12 },
   persistenceNotice: { alignItems: 'flex-start' },

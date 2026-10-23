@@ -4,11 +4,103 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 
-import { APP_BACKGROUND, MESSAGE_INPUT_BACKGROUND } from '../src/colors.ts';
-import { messageSendEnabled } from '../src/features/home/message-composer-layout.ts';
+import * as palette from '../src/colors.ts';
+import * as composerLayout from '../src/features/home/message-composer-layout.ts';
 import { finishConversationLifecycle } from '../src/services/conversations/conversation-finish-lifecycle.ts';
 
+const { APP_BACKGROUND, MESSAGE_INPUT_BACKGROUND } = palette;
+const { messageSendEnabled } = composerLayout;
+
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
+
+async function styledComponent(path) {
+  const source = await read(path);
+  const code = ts.transpileModule(source, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText;
+  let styles;
+  const jsx = (type, props) => ({ type, props });
+  const module = { exports: {} };
+  function Tabs() {}
+  Tabs.Screen = 'Screen';
+  const dependencies = {
+    '@/colors': palette,
+    './message-composer-layout': composerLayout,
+    'react/jsx-runtime': { jsx, jsxs: jsx },
+    'expo-router': { Tabs },
+    'react-native': {
+      Platform: { OS: 'ios' }, View: 'View', Text: 'Text', TextInput: 'TextInput', Pressable: 'Pressable',
+      StyleSheet: { hairlineWidth: 1, create: (value) => { styles = value; return value; } },
+    },
+  };
+  runInNewContext(code, {
+    module, exports: module.exports,
+    require: (name) => { assert.ok(name in dependencies, `Unexpected dependency: ${name}`); return dependencies[name]; },
+  });
+  return { component: module.exports, styles };
+}
+
+const flattenStyle = (style) => Array.isArray(style)
+  ? Object.assign({}, ...style.filter(Boolean)) : style;
+
+test('the approved palette uses the exact seven colours and retains existing chat colours', () => {
+  assert.deepEqual([
+    palette.WARM_IVORY, palette.SOFT_WHITE, palette.SOFT_BLUSH, palette.LIGHT_SAGE,
+    palette.DARK_SAGE, palette.EARTHY_CLAY, palette.DARK_BROWN,
+  ], ['#F8F5F0', '#FFFDFC', '#F2E3DF', '#A6AE90', '#7D866B', '#8D624E', '#332E2C']);
+  assert.equal(APP_BACKGROUND, palette.WARM_IVORY);
+  assert.equal(palette.MESSAGE_INPUT_BACKGROUND, '#FDF9F6');
+  assert.equal(palette.USER_MESSAGE_BACKGROUND, '#E8D7CC');
+  assert.equal(palette.ASSISTANT_MESSAGE_BACKGROUND, '#FCF4F0');
+  assert.equal(palette.MESSAGE_TEXT_COLOR, '#37312D');
+});
+
+test('both tab icons and labels distinguish focus with the approved colours and opacity', async () => {
+  const { component, styles } = await styledComponent('../src/app/(shell)/_layout.tsx');
+  const tabs = component.default();
+  assert.equal(styles.tabBar.borderTopColor, palette.SOFT_BLUSH);
+  for (const screen of tabs.props.children) {
+    for (const focused of [false, true]) {
+      const iconElement = screen.props.options.tabBarIcon({ focused });
+      const icon = iconElement.type(iconElement.props);
+      const rootStyle = flattenStyle(icon.props.style);
+      assert.equal(rootStyle.opacity ?? 1, focused ? 1 : 0.7);
+      const iconColour = focused ? palette.DARK_SAGE : palette.DARK_BROWN;
+      if (rootStyle.borderColor) assert.equal(rootStyle.borderColor, iconColour);
+      for (const piece of icon.props.children) {
+        const style = flattenStyle(piece.props.style);
+        assert.equal(style.borderColor ?? style.borderBottomColor ?? style.backgroundColor, iconColour);
+      }
+      const label = screen.props.options.tabBarLabel({ focused });
+      const labelStyle = flattenStyle(label.props.style);
+      assert.equal(labelStyle.color, palette.DARK_BROWN);
+      assert.equal(labelStyle.opacity ?? 1, focused ? 1 : 0.7);
+      assert.equal(labelStyle.fontWeight, focused ? '600' : '500');
+    }
+  }
+});
+
+test('composer text and microphone use brown with a sage active background and unchanged send colours', async () => {
+  const { component, styles } = await styledComponent('../src/features/home/message-composer.tsx');
+  for (const isListening of [false, true]) {
+    const composer = component.MessageComposer({ draft: 'Hello', inputHeight: 39, canSend: true, isListening, isBusy: false });
+    const [frame, microphone, send] = composer.props.children.props.children;
+    const input = frame.props.children[1];
+    assert.equal(flattenStyle(input.props.style).color, palette.DARK_BROWN);
+    const microphoneStyle = flattenStyle(microphone.props.style({ pressed: false }));
+    assert.equal(microphoneStyle.backgroundColor, isListening ? palette.LIGHT_SAGE : undefined);
+    const glyph = microphone.props.children.type(microphone.props.children.props);
+    for (const piece of glyph.props.children) {
+      const style = flattenStyle(piece.props.style);
+      assert.equal(style.borderColor ?? style.borderBottomColor ?? style.backgroundColor, palette.DARK_BROWN);
+    }
+    assert.equal(flattenStyle(send.props.style({ pressed: false })).backgroundColor, '#DFC0AC');
+  }
+  assert.equal(styles.composer.backgroundColor, '#FDF9F6');
+  assert.equal(styles.sendButtonDisabled.backgroundColor, '#E5DED9');
+  assert.equal(styles.sendArrow.color, '#37312D');
+  assert.equal(styles.sendArrowDisabled.color, '#736C67');
+});
 
 test('Home welcome uses local time and falls back to Zaynab when no first name is available', async () => {
   const source = await read('../src/features/home/home-screen.tsx');
@@ -376,7 +468,7 @@ test('approved page and message-input colours are shared across screens', async 
   }
   const composer = await read('../src/features/home/message-composer.tsx');
   assert.match(composer, /backgroundColor: MESSAGE_INPUT_BACKGROUND/);
-  assert.match(composer, /input: \{\s+color: '#25364A'/);
+  assert.match(composer, /input: \{\s+color: DARK_BROWN/);
   assert.doesNotMatch(composer, /#19191B|#F7F7F8/);
   const chats = await read('../src/features/chats/chats-list.tsx');
   assert.match(chats, /compactTitle: \{ fontSize:/);

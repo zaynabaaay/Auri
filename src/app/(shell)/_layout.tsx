@@ -1,10 +1,10 @@
-import { APP_BACKGROUND } from '@/colors';
+import { APP_BACKGROUND, DARK_BROWN, DARK_SAGE, SOFT_BLUSH } from '@/colors';
 import { Tabs } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
 function TinaIcon({ focused }: { focused: boolean }) {
   return (
-    <View style={styles.tinaIcon}>
+    <View style={[styles.tinaIcon, !focused && styles.inactive]}>
       <View style={[styles.tinaBubble, focused && styles.iconFocused]} />
       <View style={[styles.tinaTail, focused && styles.tailFocused]} />
     </View>
@@ -13,7 +13,7 @@ function TinaIcon({ focused }: { focused: boolean }) {
 
 function ProjectsIcon({ focused }: { focused: boolean }) {
   return (
-    <View style={[styles.projectsIcon, focused && styles.projectsIconFocused]}>
+    <View style={[styles.projectsIcon, focused && styles.projectsIconFocused, !focused && styles.inactive]}>
       <View style={[styles.projectLine, focused && styles.projectLineFocused]} />
       <View style={[styles.projectLine, styles.projectLineShort, focused && styles.projectLineFocused]} />
     </View>
@@ -30,9 +30,9 @@ export default function ShellLayout() {
         headerShown: false,
         lazy: false,
         sceneStyle: styles.scene,
-        tabBarActiveTintColor: '#25364A',
+        tabBarActiveTintColor: DARK_SAGE,
         tabBarHideOnKeyboard: true,
-        tabBarInactiveTintColor: '#66666C',
+        tabBarInactiveTintColor: DARK_BROWN,
         tabBarItemStyle: styles.tabBarItem,
         tabBarLabelStyle: styles.label,
         tabBarStyle: styles.tabBar,
@@ -43,7 +43,7 @@ export default function ShellLayout() {
         options={{
           tabBarAccessibilityLabel: 'Auri conversation',
           tabBarIcon: ({ focused }) => <TinaIcon focused={focused} />,
-          tabBarLabel: ({ color }) => <Text style={[styles.label, { color }]}>Auri</Text>,
+          tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Auri</Text>,
           title: 'Auri',
         }}
       />
@@ -52,7 +52,7 @@ export default function ShellLayout() {
         options={{
           tabBarAccessibilityLabel: 'Projects library',
           tabBarIcon: ({ focused }) => <ProjectsIcon focused={focused} />,
-          tabBarLabel: ({ color }) => <Text style={[styles.label, { color }]}>Projects</Text>,
+          tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Projects</Text>,
           title: 'Projects',
         }}
       />
@@ -64,28 +64,30 @@ const styles = StyleSheet.create({
   scene: { backgroundColor: APP_BACKGROUND },
   tabBar: {
     backgroundColor: APP_BACKGROUND,
-    borderTopColor: '#C8DAEC',
+    borderTopColor: SOFT_BLUSH,
     borderTopWidth: StyleSheet.hairlineWidth,
     elevation: 0,
   },
   tabBarItem: { minHeight: 48, paddingTop: 4 },
-  label: { fontSize: 11, fontWeight: '600', letterSpacing: 0.1 },
+  label: { color: DARK_BROWN, fontSize: 11, fontWeight: '500', letterSpacing: 0.1 },
+  labelFocused: { fontWeight: '600' },
+  inactive: { opacity: 0.7 },
   tinaIcon: { height: 21, position: 'relative', width: 22 },
   tinaBubble: {
-    borderColor: '#66666C', borderRadius: 7, borderWidth: 1.5, height: 16, width: 21,
+    borderColor: DARK_BROWN, borderRadius: 7, borderWidth: 1.5, height: 16, width: 21,
   },
   tinaTail: {
-    borderBottomColor: '#66666C', borderBottomWidth: 1.5, height: 6,
+    borderBottomColor: DARK_BROWN, borderBottomWidth: 1.5, height: 6,
     left: 4, position: 'absolute', top: 13, transform: [{ rotate: '-35deg' }], width: 6,
   },
-  iconFocused: { borderColor: '#25364A' },
-  tailFocused: { borderBottomColor: '#25364A' },
+  iconFocused: { borderColor: DARK_SAGE },
+  tailFocused: { borderBottomColor: DARK_SAGE },
   projectsIcon: {
-    borderColor: '#66666C', borderRadius: 4, borderWidth: 1.5,
+    borderColor: DARK_BROWN, borderRadius: 4, borderWidth: 1.5,
     height: 19, justifyContent: 'center', paddingHorizontal: 4, width: 21,
   },
-  projectsIconFocused: { borderColor: '#25364A' },
-  projectLine: { backgroundColor: '#66666C', borderRadius: 1, height: 1.5, width: 11 },
-  projectLineFocused: { backgroundColor: '#25364A' },
+  projectsIconFocused: { borderColor: DARK_SAGE },
+  projectLine: { backgroundColor: DARK_BROWN, borderRadius: 1, height: 1.5, width: 11 },
+  projectLineFocused: { backgroundColor: DARK_SAGE },
   projectLineShort: { marginTop: 4, width: 7 },
 });
