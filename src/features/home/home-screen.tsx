@@ -68,8 +68,6 @@ function HomeHeader({
         </View>
       </Pressable>
 
-      <Text style={styles.headerTitle}>Auri</Text>
-
       <Pressable
         accessibilityLabel="Start a new chat"
         accessibilityRole="button"
@@ -519,8 +517,6 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1, position: 'relative' },
   header: {
     alignItems: 'center',
-    borderBottomColor: '#171719',
-    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: 'row',
     justifyContent: 'space-between',
     minHeight: 54,
@@ -530,7 +526,6 @@ const styles = StyleSheet.create({
   menuIcon: { gap: 6, width: 20 },
   menuLine: { backgroundColor: '#25364A', borderRadius: 1, height: 1.5, width: 20 },
   menuLineShort: { width: 14 },
-  headerTitle: { color: '#25364A', fontSize: 17, fontWeight: '600', letterSpacing: -0.2 },
   newChatButton: {
     alignItems: 'flex-end',
     justifyContent: 'center',

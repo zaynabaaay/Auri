@@ -197,7 +197,8 @@ test('Home is a minimal conversation shell with the approved background without 
   const home = await read('../src/features/home/home-screen.tsx');
   assert.match(home, /backgroundColor: APP_BACKGROUND/);
   assert.match(home, /<StatusBar style="dark"/);
-  assert.match(home, /<Text style=\{styles\.headerTitle\}>Auri<\/Text>/);
+  assert.doesNotMatch(home, /headerTitle/);
+  assert.doesNotMatch(home.match(/header: \{([^}]+)\}/)?.[1] ?? '', /borderBottom/);
   assert.doesNotMatch(home, /TIME_FORMATTER|DATE_FORMATTER|useCurrentDate|styles\.time|styles\.date/);
 });
 
