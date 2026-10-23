@@ -7,8 +7,17 @@ type AuthClient = Pick<SupabaseClient, 'auth'>;
 type AuthStateListener = (session: AuthSession | null) => void;
 
 function toAuthenticatedUser(user: User): AuthenticatedUser {
+  const firstName = [
+    user.user_metadata?.first_name,
+    user.user_metadata?.given_name,
+    user.user_metadata?.full_name,
+    user.user_metadata?.name,
+  ].find((value): value is string => typeof value === 'string' && value.trim().length > 0)
+    ?.trim().split(/\s+/)[0];
+
   return {
     ...(user.email ? { email: user.email } : {}),
+    ...(firstName ? { firstName } : {}),
     id: user.id,
   };
 }

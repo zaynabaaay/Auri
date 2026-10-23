@@ -93,6 +93,27 @@ test('the auth service restores the persisted session and exposes the user ID', 
   assert.equal(await service.getAccessToken(), 'access-token');
 });
 
+test('profile names are optional, trimmed, and never inferred from email', async () => {
+  for (const [metadata, expected] of [
+    [{ first_name: '  Ada  ', given_name: 'Other', full_name: 'Another Person' }, 'Ada'],
+    [{ first_name: ' ', given_name: '  Anne-Marie  ' }, 'Anne-Marie'],
+    [{ full_name: '  Mary Jane Watson ' }, 'Mary'],
+    [{ name: ' 李 雷 ' }, '李'],
+    [{ first_name: 42, given_name: null, full_name: ['Not', 'a name'], name: ' Grace Hopper ' }, 'Grace'],
+    [{ first_name: {}, full_name: '' }, undefined],
+    [{}, undefined],
+  ]) {
+    const service = new AuthService(() => createFakeAuthClient({
+      ...SESSION,
+      user: { ...SESSION.user, user_metadata: metadata },
+    }));
+    const user = await service.getAuthenticatedUser();
+    assert.equal(user.firstName, expected);
+    assert.equal(user.id, USER_ID);
+    assert.equal(user.email, SESSION.user.email);
+  }
+});
+
 test('sign-out clears the authenticated session', async () => {
   const fakeClient = createFakeAuthClient();
   const service = new AuthService(() => fakeClient);

@@ -1,5 +1,6 @@
 export type AuthenticatedUser = {
   email?: string;
+  firstName?: string;
   id: string;
 };
 

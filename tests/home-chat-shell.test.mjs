@@ -10,6 +10,62 @@ import { finishConversationLifecycle } from '../src/services/conversations/conve
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 
+test('Home welcome uses local time and falls back to Zaynab when no first name is available', async () => {
+  const source = await read('../src/features/home/home-screen.tsx');
+  const file = ts.createSourceFile('home-screen.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const welcome = file.statements.find((node) => ts.isFunctionDeclaration(node) && node.name?.text === 'HomeWelcome');
+  assert.ok(welcome);
+  const firstNameExpression = source.match(/<HomeWelcome firstName=\{([^}]+)\}/)?.[1];
+  assert.ok(firstNameExpression);
+  const code = ts.transpileModule(`(${welcome.getText(file)})`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX },
+  }).outputText;
+  for (const [hour, expected] of [
+    [0, 'Good morning,'], [11, 'Good morning,'],
+    [12, 'Good afternoon,'], [17, 'Good afternoon,'],
+    [18, 'Good evening,'], [23, 'Good evening,'],
+  ]) {
+    const render = runInNewContext(code, {
+      exports: {},
+      View: 'View', Text: 'Text',
+      styles: { welcome: {}, welcomeGreeting: {} },
+      Date: class extends Date { getHours() { return hour; } },
+      require: () => ({ jsx: (type, props) => ({ type, props }), jsxs: (type, props) => ({ type, props }) }),
+    });
+    for (const [user, expectedName] of [
+      [undefined, 'Zaynab'], [null, 'Zaynab'], [{}, 'Zaynab'],
+      [{ firstName: '' }, 'Zaynab'], [{ firstName: 'Ada' }, 'Ada'],
+    ]) {
+      const firstName = runInNewContext(firstNameExpression, { user });
+      const tree = render({ firstName });
+      assert.equal(tree.props.children.props.children.join(''), `${expected} ${expectedName}`);
+      assert.equal(tree.props.children.props.accessibilityRole, 'header');
+    }
+  }
+});
+
+test('Home shows the welcome only for an empty conversation after restoration', async () => {
+  const source = await read('../src/features/home/home-screen.tsx');
+  const file = ts.createSourceFile('home-screen.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let condition;
+  function visit(node) {
+    if (ts.isConditionalExpression(node) && /<HomeWelcome\b/.test(node.whenTrue.getText(file))) {
+      condition = node.condition.getText(file);
+      assert.match(node.whenFalse.getText(file), /<HomeConversation\b/);
+    }
+    ts.forEachChild(node, visit);
+  }
+  visit(file);
+  assert.ok(condition);
+  for (const [isRestoring, messages, expected] of [
+    [true, [], false], [true, [{ role: 'user' }], false],
+    [false, [], true], [false, [{ role: 'user' }], false],
+    [false, [{ role: 'assistant' }], false],
+  ]) {
+    assert.equal(runInNewContext(condition, { isRestoring, messages }), expected);
+  }
+});
+
 function deferred() {
   let resolve;
   let reject;

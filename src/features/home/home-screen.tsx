@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ActiveConversation, ConversationMessage } from '@/domain/conversations';
 import { useAuth } from '@/features/auth/auth-provider';
+import { HEADING_FONT_FAMILY } from '@/typography';
 import { assistantService } from '@/services/assistant/assistant-service';
 import {
   activeConversationOutbox,
@@ -27,6 +28,7 @@ import {
 import { processConversationMemory } from '@/services/memory';
 
 import {
+  CHAT_MAX_WIDTH,
   MESSAGE_INPUT_MIN_HEIGHT,
   messageInputHeight,
   messageSendEnabled,
@@ -81,6 +83,19 @@ function HomeHeader({
           {isFinishing ? 'Saving…' : 'New Chat'}
         </Text>
       </Pressable>
+    </View>
+  );
+}
+
+function HomeWelcome({ firstName }: { firstName?: string }) {
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning,' : hour < 18 ? 'Good afternoon,' : 'Good evening,';
+
+  return (
+    <View style={styles.welcome} testID="home-welcome">
+      <Text accessibilityRole="header" style={styles.welcomeGreeting}>
+        {greeting}{firstName ? ` ${firstName}` : ''}
+      </Text>
     </View>
   );
 }
@@ -470,11 +485,15 @@ export default function HomeScreen() {
             ) : null}
           </View>
         ) : null}
-        <HomeConversation
-          isResponding={isResponding}
-          messages={messages}
-          scrollRequest={scrollRequest}
-        />
+        {!isRestoring && messages.length === 0 ? (
+          <HomeWelcome firstName={user?.firstName || 'Zaynab'} />
+        ) : (
+          <HomeConversation
+            isResponding={isResponding}
+            messages={messages}
+            scrollRequest={scrollRequest}
+          />
+        )}
         <MessageComposer
           canSend={canSend}
           draft={draft}
@@ -515,6 +534,17 @@ const styles = StyleSheet.create({
     right: 0,
   },
   keyboardView: { flex: 1, position: 'relative' },
+  welcome: { flex: 1, justifyContent: 'center', paddingBottom: 48, paddingHorizontal: 24 },
+  welcomeGreeting: {
+    alignSelf: 'center',
+    color: '#25364A',
+    fontFamily: HEADING_FONT_FAMILY,
+    fontSize: 28,
+    lineHeight: 36,
+    maxWidth: CHAT_MAX_WIDTH,
+    textAlign: 'center',
+    width: '100%',
+  },
   header: {
     alignItems: 'center',
     flexDirection: 'row',
