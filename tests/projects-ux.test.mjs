@@ -1,6 +1,12 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
+
+import ts from 'typescript';
+
+import * as colors from '../src/colors.ts';
+import * as projectPresentation from '../src/features/projects/project-presentation.ts';
 
 import { isAssistantApiRequest } from '../src/server/assistant/request-validation.ts';
 import { AssistantService } from '../src/services/assistant/assistant-service.ts';
@@ -22,6 +28,77 @@ import {
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
 const AT = '2026-08-26T12:00:00.000Z';
 
+async function libraryView(values, { loading = false, error = null } = {}) {
+  const source = await read('../src/features/projects/projects-screen.tsx');
+  const code = ts.transpileModule(source, {
+    compilerOptions: {
+      target: ts.ScriptTarget.ES2022,
+      module: ts.ModuleKind.CommonJS,
+      jsx: ts.JsxEmit.ReactJSX,
+    },
+  }).outputText;
+  const state = [values, 'recent', false, loading, error];
+  const routes = [];
+  const savedSorts = [];
+  let cursor = 0;
+  const jsx = (type, props, key) => ({ type, props, key });
+  const dependencies = {
+    '@/colors': colors,
+    '@/typography': { HEADING_FONT_FAMILY: 'Baskerville' },
+    react: {
+      useCallback: (callback) => callback,
+      useMemo: (factory) => factory(),
+      useState: () => {
+        const index = cursor++;
+        return [state[index], (value) => {
+          state[index] = typeof value === 'function' ? value(state[index]) : value;
+        }];
+      },
+    },
+    'react/jsx-runtime': { jsx, jsxs: jsx },
+    'expo-router': {
+      useFocusEffect: () => undefined,
+      useRouter: () => ({ push: (route) => routes.push(route) }),
+    },
+    'expo-status-bar': { StatusBar: 'StatusBar' },
+    'react-native': {
+      ...Object.fromEntries(['ActivityIndicator', 'Pressable', 'ScrollView', 'Text', 'View'].map((name) => [name, name])),
+      StyleSheet: { create: (styles) => styles, hairlineWidth: 1 },
+    },
+    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+    '@/services/projects/project-client': { projectRepository: {} },
+    './project-presentation': projectPresentation,
+    './project-view-preference': {
+      projectSortPreference: { save: async (sort) => { savedSorts.push(sort); } },
+    },
+  };
+  const module = { exports: {} };
+  runInNewContext(code, {
+    module,
+    exports: module.exports,
+    require(name) {
+      assert.ok(name in dependencies, `Unexpected dependency: ${name}`);
+      return dependencies[name];
+    },
+  });
+  const flatten = (tree) => {
+    if (Array.isArray(tree)) return tree.flatMap(flatten);
+    if (!tree || typeof tree !== 'object') return [];
+    if (typeof tree.type === 'function') return flatten(tree.type(tree.props));
+    return [tree, ...flatten(tree.props?.children)];
+  };
+  const render = () => {
+    cursor = 0;
+    return flatten(module.exports.default());
+  };
+  const byId = (id) => {
+    const node = render().find((node) => node.props?.testID === id);
+    assert.ok(node, `Expected ${id}`);
+    return node;
+  };
+  return { render, byId, routes, savedSorts };
+}
+
 function project(id, status = 'active', overrides = {}) {
   return {
     createdAt: AT,
@@ -41,6 +118,78 @@ test('Project presentation uses persisted identity copy and a cover-free fallbac
   assert.equal(projectDescription(project('a')), 'a description');
   assert.equal(projectDescription(project('a', 'active', { description: undefined })), 'No description yet.');
   assert.equal(projectFallbackInitial(project('a')), 'A');
+});
+
+test('Projects reference layout uses a centered serif heading, exact subtitle, and responsive content', async () => {
+  const view = await libraryView([project('a'), project('b')]);
+  const nodes = view.render();
+  const heading = nodes.find((node) => node.props?.accessibilityRole === 'header');
+  assert.equal(heading.props.children, 'Projects');
+  assert.equal(heading.props.style.fontFamily, 'Baskerville');
+  assert.equal(heading.props.style.textAlign, 'center');
+  assert.ok(nodes.some((node) => node.props?.children === 'A space for the things you’re working on. I’ll keep everything organized and ready for you.'));
+  const scroll = nodes.filter((node) => node.type === 'ScrollView');
+  assert.equal(scroll.length, 1);
+  assert.equal(scroll[0].props.contentContainerStyle.maxWidth, 720);
+  assert.equal(scroll[0].props.contentContainerStyle.width, '100%');
+  assert.equal(view.byId('projects-screen').props.style.backgroundColor, colors.APP_BACKGROUND);
+});
+
+test('reference cards retain real identity, description, project navigation, and accessible recency', async () => {
+  const value = project('a');
+  const view = await libraryView([value]);
+  const row = view.byId('project-row-a');
+  const style = row.props.style({ pressed: false })[0];
+  assert.equal(style.borderColor, colors.SOFT_WHITE);
+  assert.equal(style.borderRadius, 24);
+  assert.equal(style.minHeight, 134);
+  assert.equal(style.boxShadow[0].color, `${colors.EARTHY_CLAY}14`);
+  assert.match(row.props.accessibilityHint, /Updated/);
+  assert.ok(view.render().some((node) => node.props?.children === value.name));
+  assert.ok(view.render().some((node) => node.props?.children === value.description));
+  row.props.onPress();
+  assert.equal(view.routes[0].pathname, '/projects/[id]');
+  assert.equal(view.routes[0].params.id, value.id);
+  assert.ok(!view.render().some((node) => node.props?.accessibilityRole === 'progressbar'));
+});
+
+test('circular project initials use the existing sage and blush palette', async () => {
+  const view = await libraryView([project('a'), project('b')]);
+  const covers = view.render().filter((node) => node.props?.testID === 'project-cover-fallback');
+  const sage = Object.assign({}, ...covers[0].props.style.filter(Boolean));
+  const blush = Object.assign({}, ...covers[1].props.style.filter(Boolean));
+  assert.equal(sage.height, 46);
+  assert.equal(sage.width, 46);
+  assert.equal(sage.borderRadius, 23);
+  assert.equal(sage.backgroundColor, `${colors.LIGHT_SAGE}26`);
+  assert.equal(blush.backgroundColor, colors.SOFT_BLUSH);
+});
+
+test('centered New Project and sorting remain functional below the project cards', async () => {
+  const view = await libraryView([project('a')]);
+  const button = view.byId('new-project-button');
+  assert.equal(button.props.style({ pressed: false })[0].alignSelf, 'center');
+  assert.ok(view.render().some((node) => node.props?.children === '+ New Project'));
+  button.props.onPress();
+  assert.deepEqual(view.routes, ['/projects/new']);
+  view.byId('projects-sort-name').props.onPress();
+  assert.deepEqual(view.savedSorts, ['name']);
+  assert.equal(view.byId('projects-sort-name').props.accessibilityState.selected, true);
+});
+
+test('restyled library retains archived navigation and loading, error, and empty states', async () => {
+  const archived = await libraryView([project('a', 'archived')]);
+  assert.ok(!archived.render().some((node) => node.props?.testID === 'project-row-a'));
+  archived.byId('toggle-archived-projects').props.onPress();
+  archived.byId('project-row-a').props.onPress();
+  assert.equal(archived.routes[0].params.id, 'a');
+  const loading = await libraryView([], { loading: true });
+  assert.ok(loading.render().some((node) => node.type === 'ActivityIndicator'));
+  const failed = await libraryView([], { error: 'Projects could not be loaded.' });
+  assert.ok(failed.render().some((node) => node.props?.accessibilityRole === 'alert'));
+  const empty = await libraryView([]);
+  assert.ok(empty.render().some((node) => node.props?.children === 'No Projects yet'));
+  empty.byId('new-project-button');
 });
 
 test('normal lifecycle statuses share one library while archived Projects remain separate', () => {
