@@ -14,8 +14,17 @@ function TinaIcon({ focused }: { focused: boolean }) {
 function ProjectsIcon({ focused }: { focused: boolean }) {
   return (
     <View style={[styles.projectsIcon, focused && styles.projectsIconFocused, !focused && styles.inactive]}>
-      <View style={[styles.projectLine, focused && styles.projectLineFocused]} />
-      <View style={[styles.projectLine, styles.projectLineShort, focused && styles.projectLineFocused]} />
+      <View style={[styles.projectLine, focused && styles.lineFocused]} />
+      <View style={[styles.projectLine, styles.projectLineShort, focused && styles.lineFocused]} />
+    </View>
+  );
+}
+
+function TasksIcon({ focused }: { focused: boolean }) {
+  return (
+    <View style={[styles.tasksIcon, !focused && styles.inactive]}>
+      <View style={[styles.taskCheck, styles.taskCheckShort, focused && styles.lineFocused]} />
+      <View style={[styles.taskCheck, styles.taskCheckLong, focused && styles.lineFocused]} />
     </View>
   );
 }
@@ -56,6 +65,15 @@ export default function ShellLayout() {
           title: 'Projects',
         }}
       />
+      <Tabs.Screen
+        name="tasks/index"
+        options={{
+          tabBarAccessibilityLabel: 'Tasks',
+          tabBarIcon: ({ focused }) => <TasksIcon focused={focused} />,
+          tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Tasks</Text>,
+          title: 'Tasks',
+        }}
+      />
     </Tabs>
   );
 }
@@ -88,6 +106,10 @@ const styles = StyleSheet.create({
   },
   projectsIconFocused: { borderColor: DARK_SAGE },
   projectLine: { backgroundColor: DARK_BROWN, borderRadius: 1, height: 1.5, width: 11 },
-  projectLineFocused: { backgroundColor: DARK_SAGE },
+  lineFocused: { backgroundColor: DARK_SAGE },
   projectLineShort: { marginTop: 4, width: 7 },
+  tasksIcon: { height: 21, position: 'relative', width: 22 },
+  taskCheck: { backgroundColor: DARK_BROWN, borderRadius: 1, height: 1.5, position: 'absolute' },
+  taskCheckShort: { left: 2, top: 12, transform: [{ rotate: '45deg' }], width: 7 },
+  taskCheckLong: { left: 6, top: 9, transform: [{ rotate: '-45deg' }], width: 14 },
 });
