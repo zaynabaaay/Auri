@@ -1,14 +1,12 @@
-import { APP_BACKGROUND, ASSISTANT_MESSAGE_BACKGROUND, MESSAGE_TEXT_COLOR, USER_MESSAGE_BACKGROUND } from '@/colors';
+import { APP_BACKGROUND } from '@/colors';
 import { useEffect, useRef, useState } from 'react';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import {
-  Animated,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -16,7 +14,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { ActiveConversation, ConversationMessage } from '@/domain/conversations';
-import { useReducedMotion } from '@/features/accessibility/use-reduced-motion';
 import { useAuth } from '@/features/auth/auth-provider';
 import { assistantService } from '@/services/assistant/assistant-service';
 import {
@@ -30,12 +27,12 @@ import {
 import { processConversationMemory } from '@/services/memory';
 
 import {
-  CHAT_MAX_WIDTH,
   MESSAGE_INPUT_MIN_HEIGHT,
   messageInputHeight,
   messageSendEnabled,
 } from './message-composer-layout';
 import { ChatsDrawer } from './chats-drawer';
+import { HomeConversation, type ConversationScrollRequest } from './home-conversation';
 import { MessageComposer } from './message-composer';
 import { useVisibleViewport } from './use-visible-viewport';
 
@@ -44,11 +41,6 @@ type HomeHeaderProps = {
   isFinishing: boolean;
   onNewChat: () => void;
   onOpenDrawer: () => void;
-};
-
-type ConversationProps = {
-  isResponding: boolean;
-  messages: ConversationMessage[];
 };
 
 const TINA_ACCENT = '#285A91';
@@ -95,89 +87,12 @@ function HomeHeader({
   );
 }
 
-function MessageItem({ message }: { message: ConversationMessage }) {
-  const isUser = message.role === 'user';
-
-  return (
-    <View style={isUser ? styles.userMessage : styles.assistantMessage}>
-      <Text style={isUser ? styles.userMessageText : styles.assistantMessageText}>
-        {message.content}
-      </Text>
-    </View>
-  );
-}
-
-function Conversation({ isResponding, messages }: ConversationProps) {
-  const scrollViewRef = useRef<ScrollView>(null);
-
-  return (
-    <ScrollView
-      contentContainerStyle={styles.conversationContent}
-      keyboardDismissMode="interactive"
-      keyboardShouldPersistTaps="handled"
-      onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
-      ref={scrollViewRef}
-      showsVerticalScrollIndicator={false}
-      style={styles.conversation}
-      testID="conversation-scroll"
-    >
-      {messages.map((message) => (
-        <MessageItem key={message.id} message={message} />
-      ))}
-
-      {isResponding ? <ThinkingIndicator /> : null}
-    </ScrollView>
-  );
-}
-
-function ThinkingIndicator() {
-  const [progress] = useState(() => new Animated.Value(0));
-  const reducedMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (reducedMotion) {
-      progress.setValue(0.5);
-      return;
-    }
-    const animation = Animated.loop(Animated.timing(progress, {
-      duration: 1050,
-      toValue: 1,
-      useNativeDriver: true,
-    }));
-    animation.start();
-    return () => animation.stop();
-  }, [progress, reducedMotion]);
-
-  return (
-    <View
-      accessibilityLabel="Auri is thinking"
-      accessibilityLiveRegion="polite"
-      style={styles.thinkingIndicator}
-      testID="thinking-indicator"
-    >
-      {[0, 1, 2].map((index) => (
-        <Animated.View
-          key={index}
-          style={[
-            styles.thinkingDot,
-            {
-              opacity: reducedMotion ? 0.55 : progress.interpolate({
-                inputRange: [0, 0.08 + index * 0.18, 0.38 + index * 0.18, 1],
-                outputRange: [0.25, 0.25, 0.9, 0.25],
-              }),
-            },
-          ]}
-        />
-      ))}
-    </View>
-  );
-}
-
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const visibleViewport = useVisibleViewport();
   const [draft, setDraft] = useState('');
+  const [scrollRequest, setScrollRequest] = useState<ConversationScrollRequest | null>(null);
   const [inputHeight, setInputHeight] = useState(MESSAGE_INPUT_MIN_HEIGHT);
   const [isListening, setIsListening] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -216,6 +131,7 @@ export default function HomeScreen() {
       await Promise.resolve();
       if (!mounted) return;
       setIsRestoring(true);
+      setScrollRequest(null);
       setPersistenceError(null);
       setPendingPersistenceKind(null);
       setPendingUserMessage(null);
@@ -269,7 +185,10 @@ export default function HomeScreen() {
           setPersistenceError('The saved conversation could not be restored. Please try again.');
         }
       } finally {
-        if (mounted) setIsRestoring(false);
+        if (mounted) {
+          setIsRestoring(false);
+          setScrollRequest({ kind: 'restore' });
+        }
       }
     };
 
@@ -385,6 +304,7 @@ export default function HomeScreen() {
     if (persistedUserConversation.messages.at(-1)?.id !== userMessage.id) {
       return;
     }
+    setScrollRequest({ kind: 'new-exchange', messageId: userMessage.id });
     setIsResponding(true);
 
     const result = await assistantService.respond(
@@ -417,6 +337,7 @@ export default function HomeScreen() {
     activeRequestId.current += 1;
     assistantService.resetSession();
     setActiveConversation(createActiveConversation());
+    setScrollRequest(null);
     setPendingUserMessage(null);
     setPendingPersistenceKind(null);
     setPersistenceError(null);
@@ -551,7 +472,11 @@ export default function HomeScreen() {
             ) : null}
           </View>
         ) : null}
-        <Conversation isResponding={isResponding} messages={messages} />
+        <HomeConversation
+          isResponding={isResponding}
+          messages={messages}
+          scrollRequest={scrollRequest}
+        />
         <MessageComposer
           canSend={canSend}
           draft={draft}
@@ -625,51 +550,5 @@ const styles = StyleSheet.create({
     marginHorizontal: 22,
     marginTop: 8,
   },
-  conversation: { flex: 1 },
-  conversationContent: {
-    alignSelf: 'center',
-    flexGrow: 1,
-    justifyContent: 'flex-end',
-    maxWidth: CHAT_MAX_WIDTH,
-    paddingBottom: 28,
-    paddingHorizontal: 20,
-    paddingTop: 24,
-    width: '100%',
-  },
-  userMessage: {
-    alignSelf: 'flex-end',
-    backgroundColor: USER_MESSAGE_BACKGROUND,
-    borderRadius: 18,
-    marginTop: 20,
-    maxWidth: '82%',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  userMessageText: { color: MESSAGE_TEXT_COLOR, fontSize: 16, lineHeight: 23 },
-  assistantMessage: {
-    alignSelf: 'flex-start',
-    backgroundColor: ASSISTANT_MESSAGE_BACKGROUND,
-    borderRadius: 18,
-    marginTop: 25,
-    maxWidth: '94%',
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-  },
-  assistantMessageText: {
-    color: MESSAGE_TEXT_COLOR,
-    fontSize: 17,
-    letterSpacing: -0.1,
-    lineHeight: 27,
-  },
-  thinkingIndicator: {
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    flexDirection: 'row',
-    gap: 5,
-    height: 28,
-    marginTop: 22,
-    paddingHorizontal: 2,
-  },
-  thinkingDot: { backgroundColor: '#929297', borderRadius: 3, height: 6, width: 6 },
   pressed: { opacity: 0.55 },
 });

@@ -17,6 +17,71 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
+async function homeSendHarness(persist, respond) {
+  const source = await read('../src/features/home/home-screen.tsx');
+  const file = ts.createSourceFile('home-screen.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  let handler;
+  function visit(node) {
+    if (ts.isVariableDeclaration(node) && node.name.getText(file) === 'sendMessage') handler = node.initializer;
+    ts.forEachChild(node, visit);
+  }
+  visit(file);
+  assert.ok(handler);
+  const requests = [];
+  const state = {
+    draft: 'Hello', user: { id: 'owner' }, messages: [],
+    activeConversation: { id: 'chat', messages: [] },
+    pendingUserMessage: null, activeRequestId: { current: 0 },
+    isResponding: false, isSavingMessage: false, isRestoring: false, isFinishing: false,
+    createConversationMessageId: () => 'sent-message',
+    persistActiveConversation: persist,
+    conversationService: { getActiveConversation: async () => null },
+    assistantService: { respond },
+    processConversationMemory: async () => undefined,
+    persistAssistantReply: async () => undefined,
+    setScrollRequest: (request) => requests.push({ ...request }),
+    setActiveConversation: (conversation) => { state.activeConversation = conversation; },
+    resetComposer: () => { state.draft = ''; },
+  };
+  for (const key of ['IsSavingMessage', 'IsResponding', 'PendingPersistenceKind',
+    'FinishError', 'CompletionNotice', 'PersistenceError', 'PendingUserMessage']) {
+    state[`set${key}`] = (value) => { state[key[0].toLowerCase() + key.slice(1)] = value; };
+  }
+  const code = ts.transpileModule(`(${handler.getText(file)})`, {
+    compilerOptions: { target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  return { state, requests, send: runInNewContext(code, state) };
+}
+
+test('Home requests top positioning only after saving the new user message', async () => {
+  const saved = deferred();
+  const response = deferred();
+  const responseStarted = deferred();
+  const h = await homeSendHarness(() => saved.promise, () => {
+    responseStarted.resolve();
+    return response.promise;
+  });
+  const sending = h.send();
+  assert.deepEqual(h.requests, []);
+  saved.resolve({ id: 'chat', messages: [{ id: 'sent-message' }] });
+  await responseStarted.promise;
+  assert.deepEqual(h.requests, [{ kind: 'new-exchange', messageId: 'sent-message' }]);
+  response.resolve({ status: 'success', message: { role: 'assistant', content: 'Hello back' } });
+  await sending;
+  assert.equal(h.requests.length, 1, 'the response must not request another scroll');
+});
+
+test('Home preserves a failed draft and issues no new-exchange scroll request', async () => {
+  const h = await homeSendHarness(async () => { throw new Error('save failed'); }, () => {
+    assert.fail('a failed save must not request an assistant response');
+  });
+  await h.send();
+  assert.deepEqual(h.requests, []);
+  assert.equal(h.state.draft, 'Hello');
+  assert.equal(h.state.isSavingMessage, false);
+  assert.match(h.state.persistenceError, /Message was not saved/);
+});
+
 async function homeFinishHarness(service, process) {
   // Execute the actual Home handler with controlled I/O, without mocking its logic.
   const source = await read('../src/features/home/home-screen.tsx');
@@ -203,14 +268,14 @@ test('send states are visual, disabled while unavailable, and guarded during req
 });
 
 test('Auri uses a reduced-motion-aware inline thinking indicator without status copy', async () => {
-  const [home, reducedMotion] = await Promise.all([
-    read('../src/features/home/home-screen.tsx'),
+  const [conversation, reducedMotion] = await Promise.all([
+    read('../src/features/home/home-conversation.tsx'),
     read('../src/features/accessibility/use-reduced-motion.ts'),
   ]);
-  assert.doesNotMatch(home, /Responding…/);
-  assert.match(home, /testID="thinking-indicator"/);
-  assert.match(home, /accessibilityLabel="Auri is thinking"/);
-  assert.match(home, /Animated\.loop/);
+  assert.doesNotMatch(conversation, /Responding…/);
+  assert.match(conversation, /testID="thinking-indicator"/);
+  assert.match(conversation, /accessibilityLabel="Auri is thinking"/);
+  assert.match(conversation, /Animated\.loop/);
   assert.match(reducedMotion, /isReduceMotionEnabled/);
 });
 

@@ -12,14 +12,15 @@ import {
 } from '../src/features/home/message-composer-layout.ts';
 
 test('conversation and composer share a responsive centered column without constraining the shell', async () => {
-  const [home, composer, shell] = await Promise.all([
+  const [home, conversation, composer, shell] = await Promise.all([
     readFile(new URL('../src/features/home/home-screen.tsx', import.meta.url), 'utf8'),
+    readFile(new URL('../src/features/home/home-conversation.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/features/home/message-composer.tsx', import.meta.url), 'utf8'),
     readFile(new URL('../src/app/(shell)/_layout.tsx', import.meta.url), 'utf8'),
   ]);
 
   assert.equal(CHAT_MAX_WIDTH, 720);
-  for (const [source, styleName] of [[home, 'conversationContent'], [composer, 'composerShell']]) {
+  for (const [source, styleName] of [[conversation, 'conversationContent'], [composer, 'composerShell']]) {
     assert.match(source, /import \{[\s\S]*CHAT_MAX_WIDTH[\s\S]*\} from '\.\/message-composer-layout'/);
     const style = source.match(new RegExp(`${styleName}: \\{([^}]+)\\}`))?.[1];
     assert.ok(style, `${styleName} must define the column directly`);
@@ -29,11 +30,11 @@ test('conversation and composer share a responsive centered column without const
     assert.doesNotMatch(style, /(?:minWidth|flexBasis):/);
   }
 
-  assert.match(home, /contentContainerStyle=\{styles\.conversationContent\}/);
+  assert.match(conversation, /contentContainerStyle=\{styles\.conversationContent\}/);
   assert.match(composer, /<View style=\{styles\.composerShell\} testID="composer-shell">/);
-  assert.match(home, /userMessage: \{\s*alignSelf: 'flex-end'/);
-  assert.match(home, /assistantMessage: \{\s*alignSelf: 'flex-start'/);
-  assert.match(home, /conversation: \{ flex: 1 \}/);
+  assert.match(conversation, /userMessage: \{\s*alignSelf: 'flex-end'/);
+  assert.match(conversation, /assistantMessage: \{\s*alignSelf: 'flex-start'/);
+  assert.match(conversation, /conversation: \{ flex: 1 \}/);
   assert.doesNotMatch(home.match(/header: \{([^}]+)\}/)?.[1] ?? '', /maxWidth|width:/);
   assert.doesNotMatch(shell, /CHAT_MAX_WIDTH|maxWidth:/);
 });
