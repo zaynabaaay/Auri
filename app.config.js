@@ -10,7 +10,7 @@ module.exports = ({ config }) => {
       url: 'https://u.expo.dev/6298135d-7aa1-43c0-8b2d-11fd29d572b6',
     },
     runtimeVersion: {
-      policy: 'fingerprint',
+      policy: 'appVersion',
     },
   };
 };
