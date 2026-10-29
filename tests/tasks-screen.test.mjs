@@ -180,6 +180,13 @@ test('navigation retains Auri and Projects and adds Tasks with the existing pale
   TabHost.Screen = 'TabScreen';
   const view = await mount('../src/app/(shell)/_layout.tsx', 'default', {
     'expo-router': { Tabs: TabHost },
+    'expo-font': {
+      useFonts: (fonts) => {
+        assert.equal(fonts.AuriFooterIcons, 'footer-font');
+        return [true, null];
+      },
+    },
+    '@expo-google-fonts/material-symbols/300Light/MaterialSymbols_300Light.ttf': 'footer-font',
   }, {});
   const tree = view.render();
   assert.deepEqual(

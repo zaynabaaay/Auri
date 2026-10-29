@@ -1,35 +1,13 @@
 import { APP_BACKGROUND, DARK_BROWN, DARK_SAGE, SOFT_BLUSH } from '@/colors';
+import { useFonts } from 'expo-font';
 import { Tabs } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
-
-function TinaIcon({ focused }: { focused: boolean }) {
-  return (
-    <View style={[styles.tinaIcon, !focused && styles.inactive]}>
-      <View style={[styles.tinaBubble, focused && styles.iconFocused]} />
-      <View style={[styles.tinaTail, focused && styles.tailFocused]} />
-    </View>
-  );
-}
-
-function ProjectsIcon({ focused }: { focused: boolean }) {
-  return (
-    <View style={[styles.projectsIcon, focused && styles.projectsIconFocused, !focused && styles.inactive]}>
-      <View style={[styles.projectLine, focused && styles.lineFocused]} />
-      <View style={[styles.projectLine, styles.projectLineShort, focused && styles.lineFocused]} />
-    </View>
-  );
-}
-
-function TasksIcon({ focused }: { focused: boolean }) {
-  return (
-    <View style={[styles.tasksIcon, !focused && styles.inactive]}>
-      <View style={[styles.taskCheck, styles.taskCheckShort, focused && styles.lineFocused]} />
-      <View style={[styles.taskCheck, styles.taskCheckLong, focused && styles.lineFocused]} />
-    </View>
-  );
-}
+import { StyleSheet, Text } from 'react-native';
 
 export default function ShellLayout() {
+  const [iconsLoaded] = useFonts({
+    AuriFooterIcons: require('@expo-google-fonts/material-symbols/300Light/MaterialSymbols_300Light.ttf'),
+  });
+
   return (
     <Tabs
       initialRouteName="index"
@@ -52,7 +30,15 @@ export default function ShellLayout() {
         name="projects/index"
         options={{
           tabBarAccessibilityLabel: 'Projects library',
-          tabBarIcon: ({ focused }) => <ProjectsIcon focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <Text
+              accessible={false}
+              allowFontScaling={false}
+              style={[styles.footerIcon, { color }, !focused && styles.inactive]}
+            >
+              {iconsLoaded ? '\ue2c7' : null}
+            </Text>
+          ),
           tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Projects</Text>,
           title: 'Projects',
         }}
@@ -61,7 +47,15 @@ export default function ShellLayout() {
         name="index"
         options={{
           tabBarAccessibilityLabel: 'Auri conversation',
-          tabBarIcon: ({ focused }) => <TinaIcon focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <Text
+              accessible={false}
+              allowFontScaling={false}
+              style={[styles.footerIcon, { color }, !focused && styles.inactive]}
+            >
+              {iconsLoaded ? '\ue0cb' : null}
+            </Text>
+          ),
           tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Auri</Text>,
           title: 'Auri',
         }}
@@ -70,7 +64,15 @@ export default function ShellLayout() {
         name="tasks/index"
         options={{
           tabBarAccessibilityLabel: 'Tasks',
-          tabBarIcon: ({ focused }) => <TasksIcon focused={focused} />,
+          tabBarIcon: ({ focused, color }) => (
+            <Text
+              accessible={false}
+              allowFontScaling={false}
+              style={[styles.footerIcon, { color }, !focused && styles.inactive]}
+            >
+              {iconsLoaded ? '\ue6b1' : null}
+            </Text>
+          ),
           tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Tasks</Text>,
           title: 'Tasks',
         }}
@@ -91,26 +93,13 @@ const styles = StyleSheet.create({
   label: { color: DARK_BROWN, fontSize: 11, fontWeight: '500', letterSpacing: 0.1 },
   labelFocused: { fontWeight: '600' },
   inactive: { opacity: 0.7 },
-  tinaIcon: { height: 21, position: 'relative', width: 22 },
-  tinaBubble: {
-    borderColor: DARK_BROWN, borderRadius: 7, borderWidth: 1.5, height: 16, width: 21,
+  footerIcon: {
+    fontFamily: 'AuriFooterIcons',
+    fontSize: 24,
+    height: 24,
+    includeFontPadding: false,
+    lineHeight: 24,
+    textAlign: 'center',
+    width: 24,
   },
-  tinaTail: {
-    borderBottomColor: DARK_BROWN, borderBottomWidth: 1.5, height: 6,
-    left: 4, position: 'absolute', top: 13, transform: [{ rotate: '-35deg' }], width: 6,
-  },
-  iconFocused: { borderColor: DARK_SAGE },
-  tailFocused: { borderBottomColor: DARK_SAGE },
-  projectsIcon: {
-    borderColor: DARK_BROWN, borderRadius: 4, borderWidth: 1.5,
-    height: 19, justifyContent: 'center', paddingHorizontal: 4, width: 21,
-  },
-  projectsIconFocused: { borderColor: DARK_SAGE },
-  projectLine: { backgroundColor: DARK_BROWN, borderRadius: 1, height: 1.5, width: 11 },
-  lineFocused: { backgroundColor: DARK_SAGE },
-  projectLineShort: { marginTop: 4, width: 7 },
-  tasksIcon: { height: 21, position: 'relative', width: 22 },
-  taskCheck: { backgroundColor: DARK_BROWN, borderRadius: 1, height: 1.5, position: 'absolute' },
-  taskCheckShort: { left: 2, top: 12, transform: [{ rotate: '45deg' }], width: 7 },
-  taskCheckLong: { left: 6, top: 9, transform: [{ rotate: '-45deg' }], width: 14 },
 });

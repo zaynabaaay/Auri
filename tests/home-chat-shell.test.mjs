@@ -26,6 +26,8 @@ async function styledComponent(path) {
   const dependencies = {
     '@/colors': palette,
     './message-composer-layout': composerLayout,
+    'expo-font': { useFonts: () => [true, null] },
+    '@expo-google-fonts/material-symbols/300Light/MaterialSymbols_300Light.ttf': 'footer-font',
     'react/jsx-runtime': { jsx, jsxs: jsx },
     'expo-router': { Tabs },
     'react-native': {
@@ -61,16 +63,29 @@ test('both tab icons and labels distinguish focus with the approved colours and 
   assert.equal(styles.tabBar.borderTopColor, palette.SOFT_BLUSH);
   for (const screen of tabs.props.children) {
     for (const focused of [false, true]) {
-      const iconElement = screen.props.options.tabBarIcon({ focused });
-      const icon = iconElement.type(iconElement.props);
-      const rootStyle = flattenStyle(icon.props.style);
-      assert.equal(rootStyle.opacity ?? 1, focused ? 1 : 0.7);
       const iconColour = focused ? palette.DARK_SAGE : palette.DARK_BROWN;
-      if (rootStyle.borderColor) assert.equal(rootStyle.borderColor, iconColour);
-      for (const piece of icon.props.children) {
-        const style = flattenStyle(piece.props.style);
-        assert.equal(style.borderColor ?? style.borderBottomColor ?? style.backgroundColor, iconColour);
-      }
+      const icon = screen.props.options.tabBarIcon({
+        focused,
+        color: iconColour,
+      });
+      const iconStyle = flattenStyle(icon.props.style);
+      const expectedGlyphs = {
+        'projects/index': '\ue2c7',
+        index: '\ue0cb',
+        'tasks/index': '\ue6b1',
+      };
+
+      assert.equal(icon.type, 'Text');
+      assert.equal(icon.props.children, expectedGlyphs[screen.props.name]);
+      assert.equal(icon.props.accessible, false);
+      assert.equal(icon.props.allowFontScaling, false);
+      assert.equal(iconStyle.fontFamily, 'AuriFooterIcons');
+      assert.equal(iconStyle.width, 24);
+      assert.equal(iconStyle.height, 24);
+      assert.equal(iconStyle.fontSize, 24);
+      assert.equal(iconStyle.lineHeight, 24);
+      assert.equal(iconStyle.color, iconColour);
+      assert.equal(iconStyle.opacity ?? 1, focused ? 1 : 0.7);
       const label = screen.props.options.tabBarLabel({ focused });
       const labelStyle = flattenStyle(label.props.style);
       assert.equal(labelStyle.color, palette.DARK_BROWN);
