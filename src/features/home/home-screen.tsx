@@ -36,7 +36,6 @@ import {
 import { ChatsDrawer } from './chats-drawer';
 import { HomeConversation, type ConversationScrollRequest } from './home-conversation';
 import { MessageComposer } from './message-composer';
-import { useVisibleViewport } from './use-visible-viewport';
 
 type HomeHeaderProps = {
   canStartNewChat: boolean;
@@ -102,7 +101,6 @@ function HomeWelcome({ firstName }: { firstName?: string }) {
 export default function HomeScreen() {
   const { user } = useAuth();
   const router = useRouter();
-  const visibleViewport = useVisibleViewport();
   const [draft, setDraft] = useState('');
   const [scrollRequest, setScrollRequest] = useState<ConversationScrollRequest | null>(null);
   const [inputHeight, setInputHeight] = useState(MESSAGE_INPUT_MIN_HEIGHT);
@@ -428,14 +426,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView
-      style={[
-        styles.safeArea,
-        visibleViewport && styles.safeAreaWeb,
-        visibleViewport && { height: visibleViewport.height, top: visibleViewport.top },
-      ]}
-      testID="home-screen"
-    >
+    <SafeAreaView style={styles.safeArea} testID="home-screen">
       <StatusBar style="dark" />
       <KeyboardAvoidingView
         behavior={KEYBOARD_AVOIDING_BEHAVIOR}
@@ -526,12 +517,6 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
-  safeAreaWeb: {
-    left: 0,
-    overflow: 'hidden',
-    position: 'absolute',
-    right: 0,
-  },
   keyboardView: { flex: 1, position: 'relative' },
   welcome: { flex: 1, justifyContent: 'center', paddingBottom: 48, paddingHorizontal: 24 },
   welcomeGreeting: {

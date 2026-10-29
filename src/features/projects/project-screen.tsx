@@ -27,7 +27,6 @@ import {
   messageInputHeight,
   messageSendEnabled,
 } from '@/features/home/message-composer-layout';
-import { useVisibleViewport } from '@/features/home/use-visible-viewport';
 import { assistantService } from '@/services/assistant/assistant-service';
 import { projectChatService, projectRepository, projectService } from '@/services/projects/project-client';
 
@@ -153,7 +152,6 @@ function OverviewFiles({ onClose, onError, projectId, section, sections }: {
 export default function ProjectScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const visibleViewport = useVisibleViewport();
   const [project, setProject] = useState<Project | null>(null);
   const [sections, setSections] = useState<ProjectSection[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
@@ -287,7 +285,7 @@ export default function ProjectScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safeArea, visibleViewport && styles.safeAreaWeb, visibleViewport && { height: visibleViewport.height, top: visibleViewport.top }]} testID="project-screen">
+    <SafeAreaView style={styles.safeArea} testID="project-screen">
       <StatusBar style="dark" />
       <KeyboardAvoidingView behavior={KEYBOARD_AVOIDING_BEHAVIOR} keyboardVerticalOffset={0} style={styles.keyboardView} testID="project-keyboard-layout">
         <View style={styles.workspace}>
@@ -367,7 +365,6 @@ export default function ProjectScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
-  safeAreaWeb: { left: 0, overflow: 'hidden', position: 'absolute', right: 0 },
   keyboardView: { flex: 1, position: 'relative' },
   workspace: { flex: 1, position: 'relative' },
   workspaceContent: { paddingBottom: 102 },
