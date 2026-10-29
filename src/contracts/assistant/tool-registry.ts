@@ -3,6 +3,7 @@ import { ASSISTANT_CONVERSATION_HISTORY_TOOL_CONTRACTS } from './conversation-hi
 import { ASSISTANT_MEMORY_TOOL_CONTRACTS } from './memory-tool-contract';
 import { ASSISTANT_PROJECT_TOOL_CONTRACTS } from './project-tool-contract';
 import { ASSISTANT_PROJECT_WRITE_TOOL_CONTRACTS } from './project-write-tool-contract';
+import { ASSISTANT_TASK_TOOL_CONTRACTS } from './task-tool-contract';
 import type {
   AssistantToolCall,
   AssistantToolContract,
@@ -16,6 +17,7 @@ export const ASSISTANT_TOOL_CONTRACTS: readonly AssistantToolContract[] = [
   ...ASSISTANT_MEMORY_TOOL_CONTRACTS,
   ...ASSISTANT_PROJECT_TOOL_CONTRACTS,
   ...ASSISTANT_PROJECT_WRITE_TOOL_CONTRACTS,
+  ...ASSISTANT_TASK_TOOL_CONTRACTS,
 ];
 
 export function getAssistantToolContract(name: unknown) {

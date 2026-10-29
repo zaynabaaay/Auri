@@ -7,6 +7,7 @@ import {
   type AssistantMemoryToolCall,
   type AssistantProjectToolCall,
   type AssistantProjectWriteToolCall,
+  type AssistantTaskToolCall,
   type AssistantToolCall,
   type AssistantToolOutput,
 } from '../../contracts/assistant';
@@ -15,6 +16,7 @@ import { executeAssistantConversationHistoryTool } from './conversation-history-
 import { executeAssistantMemoryTool } from './memory-tool-executor';
 import { executeAssistantProjectTool } from './project-tool-executor';
 import { executeAssistantProjectWriteTool } from './project-write-tool-executor';
+import { executeAssistantTaskTool } from './task-tool-executor';
 
 export type AssistantServerToolContext = {
   accessToken: string;
@@ -31,6 +33,7 @@ type AssistantServerToolExecutors = {
   memory: typeof executeAssistantMemoryTool;
   project: typeof executeAssistantProjectTool;
   projectWrite: typeof executeAssistantProjectWriteTool;
+  task: typeof executeAssistantTaskTool;
 };
 
 const DEFAULT_EXECUTORS: AssistantServerToolExecutors = {
@@ -38,6 +41,7 @@ const DEFAULT_EXECUTORS: AssistantServerToolExecutors = {
   memory: executeAssistantMemoryTool,
   project: executeAssistantProjectTool,
   projectWrite: executeAssistantProjectWriteTool,
+  task: executeAssistantTaskTool,
 };
 
 export async function executeAssistantServerTool(
@@ -79,6 +83,10 @@ export async function executeAssistantServerTool(
     ) && call.execution === 'server'
   ) {
     return executors.projectWrite(call as AssistantProjectWriteToolCall, context);
+  }
+
+  if (call.name === 'create_task' && call.execution === 'server') {
+    return executors.task(call as AssistantTaskToolCall, context);
   }
 
   throw new Error(`No server executor is registered for assistant tool: ${call.name}`);

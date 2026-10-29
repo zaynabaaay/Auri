@@ -194,6 +194,7 @@ test('normal chat reaches OpenAI with the existing conversation and safe setting
       'update_project',
       'manage_project_work',
       'record_project_truth',
+      'create_task',
     ],
   );
 });

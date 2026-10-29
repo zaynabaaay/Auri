@@ -4,5 +4,6 @@ export * from './conversation-history-tool-contract';
 export * from './memory-tool-contract';
 export * from './project-tool-contract';
 export * from './project-write-tool-contract';
+export * from './task-tool-contract';
 export * from './tool-contract';
 export * from './tool-registry';
