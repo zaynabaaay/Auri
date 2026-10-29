@@ -32,6 +32,7 @@ function TasksIcon({ focused }: { focused: boolean }) {
 export default function ShellLayout() {
   return (
     <Tabs
+      initialRouteName="index"
       backBehavior="history"
       detachInactiveScreens={false}
       screenOptions={{
@@ -48,21 +49,21 @@ export default function ShellLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          tabBarAccessibilityLabel: 'Auri conversation',
-          tabBarIcon: ({ focused }) => <TinaIcon focused={focused} />,
-          tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Auri</Text>,
-          title: 'Auri',
-        }}
-      />
-      <Tabs.Screen
         name="projects/index"
         options={{
           tabBarAccessibilityLabel: 'Projects library',
           tabBarIcon: ({ focused }) => <ProjectsIcon focused={focused} />,
           tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Projects</Text>,
           title: 'Projects',
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          tabBarAccessibilityLabel: 'Auri conversation',
+          tabBarIcon: ({ focused }) => <TinaIcon focused={focused} />,
+          tabBarLabel: ({ focused }) => <Text style={[styles.label, focused ? styles.labelFocused : styles.inactive]}>Auri</Text>,
+          title: 'Auri',
         }}
       />
       <Tabs.Screen

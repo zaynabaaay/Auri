@@ -184,8 +184,9 @@ test('navigation retains Auri and Projects and adds Tasks with the existing pale
   const tree = view.render();
   assert.deepEqual(
     nodes(tree).filter((node) => node.type === 'TabScreen').map((node) => node.props.name),
-    ['index', 'projects/index', 'tasks/index'],
+    ['projects/index', 'index', 'tasks/index'],
   );
+  assert.equal(tree.props.initialRouteName, 'index');
   assert.equal(tree.props.screenOptions.tabBarHideOnKeyboard, true);
   assert.equal(tree.props.screenOptions.tabBarActiveTintColor, colors.DARK_SAGE);
 });
