@@ -255,6 +255,7 @@ test('the assistant loop receives the saved result before confirmation', async (
     allowedOrigin: 'https://example.com',
     apiKey: 'test-key',
     verifyAccessToken: async () => ({ id: context.userId }),
+    authorizeAction: async () => ({ status: 'authorized', basis: 'explicit_request' }),
     executeServerTool: execute,
     fetchImplementation: async (_url, init) => {
       const body = JSON.parse(String(init.body));
@@ -341,6 +342,7 @@ test('database failure reaches the model as error without retrying creation', as
     allowedOrigin: 'https://example.com',
     apiKey: 'test-key',
     verifyAccessToken: async () => ({ id: context.userId }),
+    authorizeAction: async () => ({ status: 'authorized', basis: 'explicit_request' }),
     executeServerTool: execute,
     fetchImplementation: async (_url, init) => {
       const body = JSON.parse(String(init.body));
@@ -399,6 +401,7 @@ test('mixed Task and Calendar continuation preserves the saved Task without repl
     }), {
       allowedOrigin: 'https://example.com', apiKey: 'test-key',
       verifyAccessToken: async () => ({ id: context.userId }),
+      authorizeAction: async () => ({ status: 'authorized', basis: 'explicit_request' }),
       executeServerTool: execute, fetchImplementation: modelFetch,
     }), async (calendarCall) => {
     calendarCalls += 1;

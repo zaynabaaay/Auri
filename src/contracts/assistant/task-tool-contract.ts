@@ -103,7 +103,7 @@ export const ASSISTANT_TASK_TOOL_CONTRACTS: readonly AssistantToolContract<
   openAI: {
     description:
       'Create one standalone personal Task in All Tasks. Use for a clear ' +
-      'personal to-do or request to add a Task, never tentative discussion. ' +
+      'explicit request to add a Task, never merely mentioning a responsibility or tentative discussion. ' +
       'Use null for unknown optional details. Project work items belong to ' +
       'manage_project_work instead. This does not schedule notifications.',
     parameters: {

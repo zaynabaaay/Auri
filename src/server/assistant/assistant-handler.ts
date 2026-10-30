@@ -1,3 +1,4 @@
+import { authorizePrimaryAction, isAssistantMutation, type AssistantActionAuthorizer } from './action-authorization';
 import {
   ASSISTANT_CLIENT_HEADER,
   ASSISTANT_CLIENT_ID,
@@ -9,6 +10,7 @@ import type {
   AssistantToolCall,
   AssistantToolOutput,
   AssistantToolStep,
+  RecordProjectTruthToolArguments,
 } from '../../contracts/assistant';
 import {
   OpenAIAssistantProviderError,
@@ -41,6 +43,7 @@ const DEFAULT_MODEL = 'gpt-5.4-mini';
 const defaultVerifyAccessToken = createSupabaseAccessTokenVerifier();
 
 export type AssistantHandlerOptions = {
+  authorizeAction?: AssistantActionAuthorizer;
   allowedOrigin?: string;
   apiKey?: string;
   executeServerTool?: AssistantServerToolExecutor;
@@ -346,6 +349,7 @@ export async function handleAssistantRequest(
   const steps: AssistantToolStep[] = [...(body.toolContinuation?.steps ?? [])];
   const completedServerSteps: AssistantToolStep[] = [];
   const executeServerTool = options.executeServerTool ?? executeAssistantServerTool;
+  const authorizeAction = options.authorizeAction ?? authorizePrimaryAction;
   const recallRouting: MemoryRoutingMetadata = { historyFallbackRan: false, tools: [] };
   const logMemoryRouting = options.logMemoryRouting ?? ((metadata: MemoryRoutingMetadata) => {
     console.info('Assistant memory-recall routing.', metadata);
@@ -420,6 +424,21 @@ export async function handleAssistantRequest(
           502,
           responseOrigin,
         );
+      }
+
+      // Authorize the exact batch before executing any of its writes. Neither
+      // model confirmation fields nor client continuation outputs grant authority.
+      for (const call of modelResult.toolCalls.filter(isAssistantMutation)) {
+        const authorization = await authorizeAction(call, body, completedServerSteps);
+        if (authorization.status !== 'authorized') {
+          return jsonResponse({ content: authorization.message, status: 'completed' }, 200, responseOrigin);
+        }
+        // Bridge the legacy replacement enum from independently checked authority.
+        // The model-supplied value was not used as evidence of permission.
+        if (call.name === 'record_project_truth' &&
+            ['replace_knowledge', 'replace_decision'].includes(String((call.arguments as RecordProjectTruthToolArguments).operation))) {
+          call.arguments = { ...(call.arguments as RecordProjectTruthToolArguments), confirmation: 'confirmed_replacement' };
+        }
       }
 
       const serverCalls = modelResult.toolCalls.filter(
