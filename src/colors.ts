@@ -5,6 +5,7 @@ export const LIGHT_SAGE = '#A6AE90';
 export const DARK_SAGE = '#7D866B';
 export const EARTHY_CLAY = '#8D624E';
 export const DARK_BROWN = '#332E2C';
+export const ERROR_TEXT = '#8B5E52';
 
 export const APP_BACKGROUND = WARM_IVORY;
 export const MESSAGE_INPUT_BACKGROUND = '#FDF9F6';
