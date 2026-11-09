@@ -1,16 +1,20 @@
-import 'react-native-url-polyfill/auto';
+// Root layout for Auri. This file sets up the app-wide structure,
+// including authentication and navigation. It controls what users
+// can access when the app starts and applies to all screens.
 
+import 'react-native-url-polyfill/auto';
 import { APP_BACKGROUND } from '@/colors';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View } from 'react-native';
-
 import { useVisibleViewport } from '@/features/home/use-visible-viewport';
-
 import AuthLoadingScreen from '@/features/auth/auth-loading-screen';
 import { AuthProvider, useAuth } from '@/features/auth/auth-provider';
 import SignInScreen from '@/features/auth/sign-in-screen';
 
+
+// Checks the user's authentication status and decides whether to
+// display the loading screen, sign-in screen, or main app navigation.
 function AuthenticatedRouter() {
   const { status } = useAuth();
 
@@ -33,6 +37,9 @@ function AuthenticatedRouter() {
   );
 }
 
+
+// Sets up the authentication provider and status bar for the entire app.
+// Wraps AuthenticatedRouter so it can access the user's authentication status.
 export default function RootLayout() {
   const visibleViewport = useVisibleViewport();
 
