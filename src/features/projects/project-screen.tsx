@@ -1,4 +1,4 @@
-import { APP_BACKGROUND, ASSISTANT_MESSAGE_BACKGROUND, MESSAGE_TEXT_COLOR, USER_MESSAGE_BACKGROUND } from '@/colors';
+import { APP_BACKGROUND, ASSISTANT_MESSAGE_BACKGROUND, DARK_BROWN, DARK_SAGE, EARTHY_CLAY, LIGHT_SAGE, MESSAGE_TEXT_COLOR, SOFT_BLUSH, SOFT_WHITE, USER_MESSAGE_BACKGROUND } from '@/colors';
 import { HEADING_FONT_FAMILY } from '@/typography';
 import { useEffect, useRef, useState } from 'react';
 import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { Project, ProjectSection, ProjectWorkSession, ProjectWorkSessionEntry } from '@/domain/projects';
+import type { Project, ProjectKnowledgeItem, ProjectSection, ProjectTask, ProjectWorkSession, ProjectWorkSessionEntry } from '@/domain/projects';
 import { useReducedMotion } from '@/features/accessibility/use-reduced-motion';
 import { MessageComposer } from '@/features/home/message-composer';
 import {
@@ -33,8 +33,29 @@ import { projectChatService, projectRepository, projectService } from '@/service
 import { ProjectSectionAssets } from './project-section-assets';
 import { ProjectSectionNavigation } from './project-section-navigation';
 import { ProjectSectionsManager } from './project-sections-manager';
+import { projectFallbackInitial, projectTaskDueLabel, projectTaskStatusLabel, upcomingProjectTasks } from './project-presentation';
 
 const KEYBOARD_AVOIDING_BEHAVIOR = Platform.OS === 'ios' ? 'padding' : Platform.OS === 'android' ? 'height' : undefined;
+
+const PROJECT_VIEWS = [
+  { id: 'overview', title: 'Overview' },
+  { id: 'tasks', title: 'Tasks' },
+  { id: 'notes', title: 'Notes' },
+  { id: 'files', title: 'Files' },
+];
+
+function ProjectTaskCard({ task }: { task: ProjectTask }) {
+  const due = projectTaskDueLabel(task);
+  return (
+    <View style={styles.taskCard} testID={`project-task-${task.id}`}>
+      <View style={styles.taskCopy}>
+        <Text style={styles.taskTitle}>{task.title}</Text>
+        {due ? <Text style={styles.taskDue}>{due}</Text> : null}
+      </View>
+      <View style={styles.taskStatus}><Text style={styles.taskStatusText}>{projectTaskStatusLabel(task.status)}</Text></View>
+    </View>
+  );
+}
 
 function ThinkingIndicator() {
   const reducedMotion = useReducedMotion();
@@ -106,8 +127,8 @@ function ProjectActions({ onClose, onManageSections, onOpenOverviewFiles, onUpda
         <Pressable onPress={(event) => event.stopPropagation()} style={styles.actionSheet}>
           {editing ? <>
             <Text style={styles.sheetTitle}>Edit Project</Text>
-            <TextInput keyboardAppearance="dark" maxLength={300} onChangeText={setName} style={styles.sheetInput} value={name} />
-            <TextInput keyboardAppearance="dark" maxLength={600} multiline onChangeText={setDescription} placeholder="Short description" placeholderTextColor="#55555B" style={[styles.sheetInput, styles.sheetDescription]} value={description} />
+            <TextInput keyboardAppearance="light" maxLength={300} onChangeText={setName} style={styles.sheetInput} value={name} />
+            <TextInput keyboardAppearance="light" maxLength={600} multiline onChangeText={setDescription} placeholder="Short description" placeholderTextColor={EARTHY_CLAY} style={[styles.sheetInput, styles.sheetDescription]} value={description} />
             <Pressable disabled={saving || !name.trim()} onPress={() => update({ ...(description.trim() ? { description: description.trim() } : {}), name: name.trim() })} style={styles.primaryAction}><Text style={styles.primaryActionText}>{saving ? 'Saving…' : 'Save changes'}</Text></Pressable>
           </> : <>
             <Pressable onPress={() => setEditing(true)} style={styles.actionRow}><Text style={styles.actionText}>Edit Project</Text></Pressable>
@@ -154,6 +175,9 @@ export default function ProjectScreen() {
   const router = useRouter();
   const [project, setProject] = useState<Project | null>(null);
   const [sections, setSections] = useState<ProjectSection[]>([]);
+  const [tasks, setTasks] = useState<ProjectTask[]>([]);
+  const [notes, setNotes] = useState<ProjectKnowledgeItem[]>([]);
+  const [selectedView, setSelectedView] = useState('overview');
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [session, setSession] = useState<ProjectWorkSession | null>(null);
   const [entries, setEntries] = useState<ProjectWorkSessionEntry[]>([]);
@@ -183,19 +207,24 @@ export default function ProjectScreen() {
       setError(null);
       setDraft('');
       setTinaOpen(false);
+      setSelectedView('overview');
       return Promise.all([
         projectRepository.getProject(id),
         projectChatService.load(id),
         projectService.listSections(id),
+        projectRepository.listTasks(id),
+        projectRepository.listKnowledgeItems(id),
       ]);
     }).then(
-      ([value, chat, persistedSections]) => {
+      ([value, chat, persistedSections, projectTasks, knowledge]) => {
         if (!active) return;
         if (!value) { setError('Project was not found.'); return; }
         setProject(value);
         setSession(chat.session);
         setEntries(chat.entries.filter((entry) => entry.kind === 'user_message' || entry.kind === 'assistant_message'));
         setSections(persistedSections);
+        setTasks(projectTasks);
+        setNotes(knowledge.filter((item) => item.kind === 'note' && item.status === 'current'));
         setSelectedSectionId(
           persistedSections.find((section) => section.isDefault)?.id ??
           persistedSections.find((section) => section.status === 'active')?.id ?? null,
@@ -272,6 +301,7 @@ export default function ProjectScreen() {
   ) ?? activeSections.find((section) => section.isDefault) ?? null;
   const overviewSection = activeSections.find((section) => section.isDefault);
   const overviewAnchor = project?.goal?.trim();
+  const upcoming = upcomingProjectTasks(tasks);
 
   const sectionsChanged = (nextSections: ProjectSection[]) => {
     setSections(nextSections);
@@ -292,25 +322,22 @@ export default function ProjectScreen() {
           <ScrollView contentContainerStyle={[styles.workspaceContent, tinaOpen && styles.workspaceContentWithTina]} showsVerticalScrollIndicator={false} testID="project-home-scroll">
             <View style={styles.topBar}>
               <Pressable accessibilityLabel="Back to Projects" onPress={() => router.replace('/projects' as Href)} style={styles.headerButton}><Text style={styles.back}>‹</Text></Pressable>
-              <Text style={styles.projectsLabel}>Projects</Text>
               <Pressable accessibilityLabel="Project actions" disabled={!project} onPress={() => setActionsOpen(true)} style={styles.headerButton} testID="project-actions-button"><Text style={styles.more}>•••</Text></Pressable>
             </View>
 
             {restoring ? <Text style={styles.notice}>Opening Project…</Text> : project ? <>
               <View style={styles.identity} testID="project-identity">
                 <View style={styles.coverFallback} testID="project-home-cover-fallback">
-                  <View style={styles.coverPlane} />
-                  <View style={styles.coverRulePrimary} />
-                  <View style={styles.coverRuleSecondary} />
+                  <Text style={styles.coverInitial}>{projectFallbackInitial(project)}</Text>
                 </View>
                 <View style={styles.identityCopy}>
                   <Text style={styles.projectName}>{project.name}</Text>
-                  {project.description ? <Text numberOfLines={3} style={styles.projectDescription}>{project.description}</Text> : null}
+                  {project.description ? <Text style={styles.projectDescription}>{project.description}</Text> : null}
                 </View>
               </View>
 
-              <ProjectSectionNavigation onSelect={(section) => setSelectedSectionId(section.id)} sections={activeSections} selectedId={selectedSection?.id ?? ''} />
-              {selectedSection?.isDefault ? (
+              <ProjectSectionNavigation accessibilityLabel="Project views" onSelect={(view) => setSelectedView(view.id)} sections={PROJECT_VIEWS} selectedId={selectedView} testID="project-view-navigation" />
+              {selectedView === 'overview' ? (
                 <View accessibilityLabel="Project Overview" style={styles.overview} testID="project-overview-section">
                   <View style={styles.overviewContent}>
                     {overviewAnchor ? (
@@ -318,14 +345,28 @@ export default function ProjectScreen() {
                         <Text style={styles.overviewLabel}>Current focus</Text>
                         <Text style={styles.overviewText}>{overviewAnchor}</Text>
                       </>
-                    ) : (
-                      <Text style={styles.overviewEmpty}>This space is intentionally open.</Text>
-                    )}
+                    ) : null}
+                    <View style={styles.sectionHeading}>
+                      <Text accessibilityRole="header" style={styles.sectionTitle}>Upcoming</Text>
+                      <Pressable accessibilityRole="button" onPress={() => setSelectedView('tasks')} style={styles.viewAll}><Text style={styles.viewAllText}>View all ›</Text></Pressable>
+                    </View>
+                    {upcoming.length ? upcoming.map((task) => <ProjectTaskCard key={task.id} task={task} />) : <Text style={styles.overviewEmpty}>No upcoming tasks.</Text>}
                   </View>
                 </View>
-              ) : selectedSection ? (
+              ) : selectedView === 'tasks' ? (
+                <View accessibilityLabel="Project Tasks" style={styles.sectionContent} testID="project-tasks-section">
+                  <Text accessibilityRole="header" style={styles.sectionTitle}>Tasks</Text>
+                  {tasks.length ? tasks.map((task) => <ProjectTaskCard key={task.id} task={task} />) : <Text style={styles.overviewEmpty}>No tasks yet.</Text>}
+                </View>
+              ) : selectedView === 'notes' ? (
+                <View accessibilityLabel="Project Notes" style={styles.sectionContent} testID="project-notes-section">
+                  <Text accessibilityRole="header" style={styles.sectionTitle}>Notes</Text>
+                  {notes.length ? notes.map((note) => <View key={note.id} style={styles.noteCard}>{note.title ? <Text style={styles.taskTitle}>{note.title}</Text> : null}<Text style={styles.noteText}>{note.content}</Text></View>) : <Text style={styles.overviewEmpty}>No notes yet.</Text>}
+                </View>
+              ) : selectedView === 'files' && selectedSection ? (
                 <View accessibilityLabel={`${selectedSection.title} section`} style={styles.customSectionSurface} testID="project-custom-section-surface">
-                  <ProjectSectionAssets key={selectedSection.id} onError={setError} projectId={project.id} section={selectedSection} sections={activeSections} />
+                  {activeSections.length > 1 ? <ProjectSectionNavigation onSelect={(section) => setSelectedSectionId(section.id)} sections={activeSections} selectedId={selectedSection.id} /> : null}
+                  <ProjectSectionAssets key={selectedSection.id} onError={setError} projectId={project.id} section={selectedSection} sections={activeSections} title={activeSections.length === 1 ? 'Files' : selectedSection.title} />
                 </View>
               ) : null}
             </> : null}
@@ -366,74 +407,84 @@ export default function ProjectScreen() {
 const styles = StyleSheet.create({
   safeArea: { backgroundColor: APP_BACKGROUND, flex: 1 },
   keyboardView: { flex: 1, position: 'relative' },
-  workspace: { flex: 1, position: 'relative' },
+  workspace: { alignSelf: 'center', flex: 1, maxWidth: 760, position: 'relative', width: '100%' },
   workspaceContent: { paddingBottom: 102 },
   workspaceContentWithTina: { paddingBottom: 460 },
-  topBar: { alignItems: 'center', flexDirection: 'row', minHeight: 52, paddingHorizontal: 8 },
-  headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
-  back: { color: '#25364A', fontSize: 35, fontWeight: '200', lineHeight: 37 },
-  projectsLabel: { color: '#77777D', flex: 1, fontSize: 13, fontWeight: '500' },
-  more: { color: '#43566C', fontSize: 16, letterSpacing: 1 },
-  identity: { paddingBottom: 4 },
-  coverFallback: { backgroundColor: '#101011', borderColor: '#1B1B1D', borderRadius: 3, borderWidth: StyleSheet.hairlineWidth, height: 112, marginHorizontal: 20, overflow: 'hidden', position: 'relative' },
-  coverPlane: { backgroundColor: '#151516', bottom: -38, height: 94, left: '28%', position: 'absolute', right: -24, transform: [{ rotate: '-4deg' }] },
-  coverRulePrimary: { backgroundColor: '#2A2A2C', height: StyleSheet.hairlineWidth, left: 18, opacity: 0.72, position: 'absolute', right: 48, top: 34 },
-  coverRuleSecondary: { backgroundColor: '#202022', bottom: 25, height: StyleSheet.hairlineWidth, left: 48, opacity: 0.9, position: 'absolute', right: 18 },
-  identityCopy: { paddingBottom: 20, paddingHorizontal: 20, paddingTop: 20 },
-  projectName: { color: '#25364A', fontFamily: HEADING_FONT_FAMILY, fontSize: 30, fontWeight: '600', letterSpacing: -0.8, lineHeight: 35 },
-  projectDescription: { color: '#43566C', fontSize: 15, lineHeight: 21, marginTop: 8, maxWidth: 560 },
-  overview: { alignItems: 'center', minHeight: 220, paddingBottom: 48, paddingHorizontal: 20, paddingTop: 28 },
+  topBar: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 64, paddingHorizontal: 20 },
+  headerButton: { alignItems: 'center', backgroundColor: `${SOFT_BLUSH}80`, borderRadius: 22, height: 44, justifyContent: 'center', width: 44 },
+  back: { color: DARK_BROWN, fontSize: 35, fontWeight: '200', lineHeight: 37 },
+  more: { color: DARK_BROWN, fontSize: 16, letterSpacing: 1 },
+  identity: { alignItems: 'center', paddingBottom: 28, paddingTop: 12 },
+  coverFallback: { alignItems: 'center', backgroundColor: `${LIGHT_SAGE}26`, borderRadius: 32, height: 64, justifyContent: 'center', width: 64 },
+  coverInitial: { color: DARK_SAGE, fontFamily: HEADING_FONT_FAMILY, fontSize: 32 },
+  identityCopy: { alignItems: 'center', paddingHorizontal: 28, paddingTop: 16 },
+  projectName: { color: DARK_BROWN, fontFamily: HEADING_FONT_FAMILY, fontSize: 30, fontWeight: '400', lineHeight: 38, textAlign: 'center' },
+  projectDescription: { color: `${DARK_BROWN}99`, fontSize: 15, lineHeight: 23, marginTop: 10, maxWidth: 460, textAlign: 'center' },
+  overview: { alignItems: 'center', minHeight: 220, paddingBottom: 36, paddingHorizontal: 20, paddingTop: 24 },
   overviewContent: { maxWidth: 640, width: '100%' },
-  overviewLabel: { color: '#6F6F75', fontSize: 11, fontWeight: '600', letterSpacing: 0.4, textTransform: 'uppercase' },
-  overviewText: { color: '#43566C', fontSize: 16, lineHeight: 24, marginTop: 10, maxWidth: 560 },
-  overviewEmpty: { color: '#68686E', fontSize: 14, lineHeight: 21, maxWidth: 360 },
-  customSectionSurface: { minHeight: 300 },
-  tinaPanel: { backgroundColor: '#0C0C0E', borderColor: '#29292D', borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, bottom: 10, overflow: 'hidden', position: 'absolute', right: 12 },
+  overviewLabel: { color: EARTHY_CLAY, fontSize: 11, fontWeight: '600', letterSpacing: 0.4, textTransform: 'uppercase' },
+  overviewText: { color: DARK_BROWN, fontSize: 16, lineHeight: 24, marginTop: 10, maxWidth: 560 },
+  overviewEmpty: { color: EARTHY_CLAY, fontSize: 14, lineHeight: 21, maxWidth: 360 },
+  sectionContent: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 36 },
+  sectionHeading: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 },
+  sectionTitle: { color: DARK_BROWN, fontFamily: HEADING_FONT_FAMILY, fontSize: 24, lineHeight: 32 },
+  viewAll: { justifyContent: 'center', minHeight: 44, paddingLeft: 12 },
+  viewAllText: { color: EARTHY_CLAY, fontSize: 14 },
+  taskCard: { alignItems: 'center', backgroundColor: SOFT_WHITE, borderColor: SOFT_WHITE, borderRadius: 22, borderWidth: 1, boxShadow: [{ offsetX: 0, offsetY: 6, blurRadius: 18, color: `${EARTHY_CLAY}12` }], flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 16, minHeight: 96, padding: 20 },
+  taskCopy: { flex: 1, minWidth: 130 },
+  taskTitle: { color: DARK_BROWN, fontFamily: HEADING_FONT_FAMILY, fontSize: 20, lineHeight: 27 },
+  taskDue: { color: EARTHY_CLAY, fontSize: 14, lineHeight: 21, marginTop: 6 },
+  taskStatus: { backgroundColor: SOFT_BLUSH, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8 },
+  taskStatusText: { color: EARTHY_CLAY, fontSize: 12 },
+  noteCard: { backgroundColor: SOFT_WHITE, borderColor: SOFT_BLUSH, borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, marginTop: 16, padding: 20 },
+  noteText: { color: DARK_BROWN, fontSize: 15, lineHeight: 23 },
+  customSectionSurface: { minHeight: 300, paddingTop: 16 },
+  tinaPanel: { backgroundColor: SOFT_WHITE, borderColor: SOFT_BLUSH, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, bottom: 10, boxShadow: [{ offsetX: 0, offsetY: 4, blurRadius: 16, color: `${EARTHY_CLAY}14` }], overflow: 'hidden', position: 'absolute', right: 12 },
   tinaPanelClosed: { width: 142 },
   tinaPanelOpen: { borderBottomLeftRadius: 18, borderBottomRightRadius: 18, height: '62%', left: 12 },
   askTina: { alignItems: 'center', flexDirection: 'row', minHeight: 48, paddingHorizontal: 9 },
-  tinaMark: { alignItems: 'center', backgroundColor: '#182131', borderRadius: 14, height: 30, justifyContent: 'center', width: 30 },
-  tinaMarkText: { color: '#9DB9E6', fontSize: 16 },
+  tinaMark: { alignItems: 'center', backgroundColor: SOFT_BLUSH, borderRadius: 14, height: 30, justifyContent: 'center', width: 30 },
+  tinaMarkText: { color: EARTHY_CLAY, fontSize: 16 },
   askCopy: { marginLeft: 9 },
-  askTitle: { color: '#EDEDEF', fontSize: 14, fontWeight: '600' },
-  tinaHeader: { alignItems: 'center', borderBottomColor: '#242427', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 57, paddingHorizontal: 16 },
+  askTitle: { color: DARK_BROWN, fontSize: 14, fontWeight: '600' },
+  tinaHeader: { alignItems: 'center', borderBottomColor: SOFT_BLUSH, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 57, paddingHorizontal: 16 },
   tinaHeaderActions: { alignItems: 'center', flexDirection: 'row', gap: 4 },
-  tinaTitle: { color: '#F1F1F3', fontSize: 15, fontWeight: '600' },
-  tinaScope: { color: '#68686E', fontSize: 11, marginTop: 2 },
+  tinaTitle: { color: DARK_BROWN, fontSize: 15, fontWeight: '600' },
+  tinaScope: { color: EARTHY_CLAY, fontSize: 11, marginTop: 2 },
   projectNewChatButton: { alignItems: 'center', minHeight: 36, justifyContent: 'center', paddingHorizontal: 9 },
-  projectNewChatText: { color: '#A8B9D4', fontSize: 12, fontWeight: '600' },
-  projectNewChatTextDisabled: { color: '#4F5055' },
+  projectNewChatText: { color: EARTHY_CLAY, fontSize: 12, fontWeight: '600' },
+  projectNewChatTextDisabled: { color: LIGHT_SAGE },
   minimizeButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
-  minimizeText: { color: '#99999F', fontSize: 23 },
+  minimizeText: { color: EARTHY_CLAY, fontSize: 23 },
   transcript: { flex: 1 },
   transcriptContent: { flexGrow: 1, justifyContent: 'flex-end', paddingBottom: 12, paddingHorizontal: 14, paddingTop: 12 },
-  tinaEmpty: { color: '#74747A', fontSize: 13, lineHeight: 19, marginBottom: 8, textAlign: 'center' },
+  tinaEmpty: { color: EARTHY_CLAY, fontSize: 13, lineHeight: 19, marginBottom: 8, textAlign: 'center' },
   userMessage: { alignSelf: 'flex-end', backgroundColor: USER_MESSAGE_BACKGROUND, borderRadius: 17, borderTopRightRadius: 6, marginBottom: 10, maxWidth: '84%', paddingHorizontal: 13, paddingVertical: 9 },
   assistantMessage: { alignSelf: 'flex-start', backgroundColor: ASSISTANT_MESSAGE_BACKGROUND, borderRadius: 17, marginBottom: 13, maxWidth: '90%', paddingHorizontal: 13, paddingVertical: 9 },
   userText: { color: MESSAGE_TEXT_COLOR, fontSize: 15, lineHeight: 21 },
   assistantText: { color: MESSAGE_TEXT_COLOR, fontSize: 15, lineHeight: 22 },
   thinking: { alignItems: 'center', flexDirection: 'row', gap: 5, height: 24, paddingLeft: 3 },
-  dot: { backgroundColor: '#8A8A90', borderRadius: 3, height: 5, width: 5 },
-  error: { backgroundColor: '#0C0C0E', bottom: 76, color: '#E39A8E', fontSize: 12, left: 18, paddingVertical: 6, position: 'absolute', right: 18, textAlign: 'center' },
-  notice: { color: '#77777D', fontSize: 13, padding: 40, textAlign: 'center' },
-  modalBackdrop: { backgroundColor: 'rgba(0,0,0,0.68)', flex: 1, justifyContent: 'flex-end' },
-  actionSheet: { backgroundColor: '#111113', borderColor: '#29292D', borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingBottom: 24, paddingHorizontal: 16, paddingTop: 17 },
-  sheetTitle: { color: '#F3F3F5', fontSize: 18, fontWeight: '600', marginBottom: 15 },
-  sheetInput: { backgroundColor: '#1B1B1E', borderColor: '#343438', borderRadius: 11, borderWidth: StyleSheet.hairlineWidth, color: '#F4F4F5', fontSize: 15, marginBottom: 11, minHeight: 47, paddingHorizontal: 13, paddingVertical: 11 },
+  dot: { backgroundColor: DARK_SAGE, borderRadius: 3, height: 5, width: 5 },
+  error: { backgroundColor: SOFT_WHITE, bottom: 76, color: EARTHY_CLAY, fontSize: 12, left: 18, paddingVertical: 6, position: 'absolute', right: 18, textAlign: 'center' },
+  notice: { color: EARTHY_CLAY, fontSize: 13, padding: 40, textAlign: 'center' },
+  modalBackdrop: { backgroundColor: `${DARK_BROWN}66`, flex: 1, justifyContent: 'flex-end' },
+  actionSheet: { backgroundColor: SOFT_WHITE, borderColor: SOFT_BLUSH, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingBottom: 24, paddingHorizontal: 16, paddingTop: 17 },
+  sheetTitle: { color: DARK_BROWN, fontSize: 18, fontWeight: '600', marginBottom: 15 },
+  sheetInput: { backgroundColor: APP_BACKGROUND, borderColor: SOFT_BLUSH, borderRadius: 11, borderWidth: StyleSheet.hairlineWidth, color: DARK_BROWN, fontSize: 15, marginBottom: 11, minHeight: 47, paddingHorizontal: 13, paddingVertical: 11 },
   sheetDescription: { minHeight: 82, textAlignVertical: 'top' },
-  primaryAction: { alignItems: 'center', backgroundColor: '#8AB4F8', borderRadius: 12, justifyContent: 'center', minHeight: 46 },
-  primaryActionText: { color: '#08111F', fontSize: 15, fontWeight: '600' },
-  actionRow: { borderBottomColor: '#29292D', borderBottomWidth: StyleSheet.hairlineWidth, justifyContent: 'center', minHeight: 50 },
-  actionText: { color: '#F1F1F3', fontSize: 16 },
-  destructiveText: { color: '#E5988E', fontSize: 16 },
+  primaryAction: { alignItems: 'center', backgroundColor: LIGHT_SAGE, borderRadius: 12, justifyContent: 'center', minHeight: 46 },
+  primaryActionText: { color: DARK_BROWN, fontSize: 15, fontWeight: '600' },
+  actionRow: { borderBottomColor: SOFT_BLUSH, borderBottomWidth: StyleSheet.hairlineWidth, justifyContent: 'center', minHeight: 50 },
+  actionText: { color: DARK_BROWN, fontSize: 16 },
+  destructiveText: { color: EARTHY_CLAY, fontSize: 16 },
   cancelRow: { borderBottomWidth: 0, marginTop: 7 },
-  cancelText: { color: '#98989E', fontSize: 16, textAlign: 'center' },
+  cancelText: { color: EARTHY_CLAY, fontSize: 16, textAlign: 'center' },
   filesAccess: { backgroundColor: APP_BACKGROUND, flex: 1 },
-  filesAccessHeader: { alignItems: 'center', borderBottomColor: '#202023', borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 68, paddingHorizontal: 20 },
-  filesAccessTitle: { color: '#25364A', fontSize: 17, fontWeight: '600' },
-  filesAccessNote: { color: '#6E6E74', fontSize: 11, marginTop: 3 },
+  filesAccessHeader: { alignItems: 'center', borderBottomColor: SOFT_BLUSH, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', justifyContent: 'space-between', minHeight: 68, paddingHorizontal: 20 },
+  filesAccessTitle: { color: DARK_BROWN, fontSize: 17, fontWeight: '600' },
+  filesAccessNote: { color: EARTHY_CLAY, fontSize: 11, marginTop: 3 },
   filesAccessClose: { alignItems: 'center', minHeight: 44, justifyContent: 'center', paddingLeft: 18 },
-  filesAccessCloseText: { color: '#43566C', fontSize: 14, fontWeight: '600' },
+  filesAccessCloseText: { color: DARK_BROWN, fontSize: 14, fontWeight: '600' },
   filesAccessContent: { paddingTop: 8 },
   pressed: { opacity: 0.58 },
 });

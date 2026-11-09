@@ -1,3 +1,4 @@
+import { assertPassiveBackgroundChanges } from '../../domain/actions/action-authorization';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 import type {
@@ -113,6 +114,7 @@ implements ConversationProjectProcessingRepository {
   async commitProjectResult(input: Parameters<
     ConversationProjectProcessingRepository['commitProjectResult']
   >[0]) {
+    assertPassiveBackgroundChanges(input.changes);
     const { data, error } = await this.getClient().rpc('commit_conversation_project_result', {
       p_candidates: input.candidates.map(candidateRow),
       p_changes: createConversationProjectChangesPayload(input.changes),

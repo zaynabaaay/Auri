@@ -1,4 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text } from 'react-native';
+import { DARK_BROWN, DARK_SAGE, EARTHY_CLAY, SOFT_BLUSH } from '@/colors';
 
 export type ProjectSectionDefinition = {
   id: string;
@@ -6,20 +7,26 @@ export type ProjectSectionDefinition = {
 };
 
 export function ProjectSectionNavigation({
+  accessibilityLabel = 'Project sections',
   onSelect,
   sections,
   selectedId,
+  testID = 'project-section-navigation',
 }: {
+  accessibilityLabel?: string;
   onSelect: (section: ProjectSectionDefinition) => void;
   sections: readonly ProjectSectionDefinition[];
   selectedId: string;
+  testID?: string;
 }) {
   return (
     <ScrollView
+      accessibilityLabel={accessibilityLabel}
       contentContainerStyle={styles.content}
       horizontal
       showsHorizontalScrollIndicator={false}
-      testID="project-section-navigation"
+      style={styles.navigation}
+      testID={testID}
     >
       {sections.map((section) => {
         const selected = section.id === selectedId;
@@ -40,15 +47,18 @@ export function ProjectSectionNavigation({
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: 20 },
+  navigation: { borderBottomColor: SOFT_BLUSH, borderBottomWidth: StyleSheet.hairlineWidth },
+  content: { flexGrow: 1, paddingHorizontal: 20 },
   item: {
     borderBottomColor: 'transparent',
     borderBottomWidth: 2,
+    alignItems: 'center',
+    flexGrow: 1,
     justifyContent: 'center',
-    marginRight: 22,
-    minHeight: 44,
+    paddingHorizontal: 12,
+    minHeight: 52,
   },
-  itemSelected: { borderBottomColor: '#285A91' },
-  text: { color: '#69696F', fontSize: 14, fontWeight: '500' },
-  textSelected: { color: '#25364A' },
+  itemSelected: { borderBottomColor: DARK_SAGE },
+  text: { color: EARTHY_CLAY, fontSize: 14, fontWeight: '500' },
+  textSelected: { color: DARK_BROWN },
 });

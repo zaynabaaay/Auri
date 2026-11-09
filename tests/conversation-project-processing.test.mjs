@@ -426,7 +426,7 @@ test('a pure Project history lookup is not forced into a new work session when a
   assert.deepEqual(await state.projectRepository.listWorkSessions('aqal'), []);
 });
 
-test('clear new information and confirmed decisions persist while brainstorming stays pending', async () => {
+test('new facts, stated decisions, and brainstorming remain pending without execution authority', async () => {
   const state = setup({
     matches: [{ confidence: 'high', projectId: 'aqal', relevantMessageIds: ['m0'] }],
     messages: [message('m0', 'For AQAL, the minimum order is 100. We decided on Studio North. Maybe change the colors.', 0)],
@@ -446,17 +446,17 @@ test('clear new information and confirmed decisions persist while brainstorming 
 
   await state.processor.process('conversation-1');
 
-  assert.equal((await state.projectRepository.listKnowledgeItems('aqal')).length, 1);
-  assert.equal((await state.projectRepository.listDecisions('aqal')).length, 1);
+  assert.equal((await state.projectRepository.listKnowledgeItems('aqal')).length, 0);
+  assert.equal((await state.projectRepository.listDecisions('aqal')).length, 0);
   const pending = [...state.processingRepository.pendingCandidates.values()];
-  assert.equal(pending.length, 1);
+  assert.equal(pending.length, 3);
   assert.deepEqual(Object.keys(pending[0]).sort(), [
     'content', 'conversationId', 'createdAt', 'id', 'projectId', 'sessionId', 'status',
   ]);
   assert.equal(pending[0].conversationId, 'conversation-1');
 });
 
-test('a clear update supersedes current knowledge while preserving the historical record', async () => {
+test('a descriptive correction stays pending and does not supersede accepted knowledge', async () => {
   const existing = {
     content: 'The launch is September 1.', createdAt: STARTED_AT, id: 'launch-date',
     kind: 'fact', projectId: 'aqal', status: 'current', updatedAt: STARTED_AT,
@@ -476,8 +476,8 @@ test('a clear update supersedes current knowledge while preserving the historica
 
   await state.processor.process('conversation-1');
   const values = await state.projectRepository.listKnowledgeItems('aqal');
-  assert.equal(values.find((value) => value.id === 'launch-date').status, 'superseded');
-  assert.equal(values.find((value) => value.status === 'current').supersedesKnowledgeItemId, 'launch-date');
+  assert.deepEqual(values, [existing]);
+  assert.equal(state.processingRepository.pendingCandidates.size, 1);
 });
 
 test('similar Projects and assistant-only or unrelated evidence fail closed', async () => {
@@ -580,7 +580,7 @@ test('unresolved same-topic decisions and updates remain pending instead of crea
   assert.equal(state.processingRepository.pendingCandidates.size, 4);
 });
 
-test('candidate B reconciles against candidate A projected state', async () => {
+test('equivalent extraction candidates deduplicate as pending evidence without creating truth', async () => {
   const state = setup({
     matches: [{ confidence: 'high', projectId: 'aqal', relevantMessageIds: ['m0'] }],
     messages: [message('m0', 'For AQAL, the minimum order is 100 units.', 0)],
@@ -591,7 +591,8 @@ test('candidate B reconciles against candidate A projected state', async () => {
     } },
   });
   await state.processor.process('conversation-1');
-  assert.equal((await state.projectRepository.listKnowledgeItems('aqal')).length, 1);
+  assert.equal((await state.projectRepository.listKnowledgeItems('aqal')).length, 0);
+  assert.equal(state.processingRepository.pendingCandidates.size, 1);
   assert.equal(state.processingRepository.commits.length, 1);
 });
 
@@ -613,7 +614,7 @@ test('concurrent requests for one conversation reuse one plan and cannot downgra
   assert.equal(state.processingRepository.record.conversation.processingStatus, 'processed');
 });
 
-test('different conversations concurrently adding equivalent truth produce one truth record', async () => {
+test('different conversations retain their evidence without concurrently materializing truth', async () => {
   const projects = new InMemoryProjectRepository({ projects: [project('aqal', 'AQAL')] });
   const locks = new Map();
   const build = (conversationId, messageId) => {
@@ -636,7 +637,7 @@ test('different conversations concurrently adding equivalent truth produce one t
     first.processor.process('conversation-a'),
     second.processor.process('conversation-b'),
   ]);
-  assert.equal((await projects.listKnowledgeItems('aqal')).length, 1);
+  assert.equal((await projects.listKnowledgeItems('aqal')).length, 0);
   assert.equal((await projects.listWorkSessions('aqal')).length, 2);
 });
 
@@ -898,4 +899,30 @@ test('a bounded single-flight wait returns processing instead of marking the con
   });
   assert.equal(response.status, 202);
   assert.deepEqual(await response.json(), { status: 'processing' });
+});
+
+test('cached completed-chat plans cannot replay explicit commands or promote assistant suggestions', async () => {
+  const state = setup({
+    matches: [],
+    messages: [
+      message('m0', 'Add a supplier follow-up task to AQAL.', 0),
+      message('m1', 'I suggest also adding ten more tasks.', 1, 'assistant'),
+      message('m2', 'Actually, just discuss it for now.', 2),
+    ],
+    projects: [project('aqal', 'AQAL')], reconciliations: {},
+  });
+  state.processingRepository.record.conversation.processingPlan = { version: 2, projects: [{
+    projectId: 'aqal', title: 'Cached organization', summary: 'Discussed supplier work.', relevantMessageIds: ['m0', 'm1', 'm2'],
+    candidates: [candidate({ classification: 'new', content: 'Follow up with supplier', title: 'Follow up with supplier', target: 'task', knowledgeKind: null, existingEntityId: null, rationale: null, usefulPending: false })],
+  }] };
+  state.processingRepository.checkpoints.set('aqal', { status: 'pending', projectId: 'aqal', processingAttempts: 0 });
+  await state.processor.process('conversation-1');
+  assert.equal(state.analyzer.matchCalls, 0);
+  assert.deepEqual(await state.projectRepository.listTasks('aqal'), []);
+  assert.deepEqual(await state.projectRepository.listKnowledgeItems('aqal'), []);
+  assert.deepEqual(await state.projectRepository.listDecisions('aqal'), []);
+  assert.equal((await state.projectRepository.listWorkSessions('aqal')).length, 1);
+  assert.equal(state.processingRepository.pendingCandidates.size, 1);
+  await state.processor.process('conversation-1');
+  assert.deepEqual(await state.projectRepository.listTasks('aqal'), []);
 });

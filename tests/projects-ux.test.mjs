@@ -408,7 +408,7 @@ test('Project-scoped Auri expands inside the workspace and reuses composer behav
   assert.match(screen, /tinaOpen \? styles\.tinaPanelOpen : styles\.tinaPanelClosed/);
   assert.match(screen, /tinaPanelClosed: \{ width: 142 \}/);
   assert.match(screen, /tinaPanelOpen: \{[^}]*height: '62%'[^}]*left: 12/);
-  assert.match(screen, /tinaPanel: \{[^}]*right: 12/);
+  assert.match(screen, /tinaPanel: \{[^\n]*right: 12/);
   assert.doesNotMatch(screen, /tinaPanelOpen: \{[^}]*width:/);
   assert.doesNotMatch(screen, /width: undefined/);
   assert.doesNotMatch(screen, /Right now|current state|current context/i);
@@ -456,12 +456,15 @@ test('section navigation is backed by genuine persisted Project sections', async
   assert.doesNotMatch(types, /Materials|Manufacturers|Budget|Characters|Artwork|Venue/);
 });
 
-test('the old schema-category Workspace is retired from primary navigation', async () => {
+test('the Project detail tabs retain the retired Workspace redirect', async () => {
   const [screen, retiredRoute] = await Promise.all([
     read('../src/features/projects/project-screen.tsx'),
     read('../src/app/projects/[id]/workspace.tsx'),
   ]);
-  assert.doesNotMatch(screen, /Decisions|Open Questions|Tasks|Chats|Files \/ Resources/);
+  assert.match(screen, /id: 'overview', title: 'Overview'/);
+  assert.match(screen, /id: 'tasks', title: 'Tasks'/);
+  assert.match(screen, /id: 'notes', title: 'Notes'/);
+  assert.match(screen, /id: 'files', title: 'Files'/);
   assert.match(retiredRoute, /<Redirect/);
   assert.match(retiredRoute, /pathname: '\/projects\/\[id\]'/);
 });

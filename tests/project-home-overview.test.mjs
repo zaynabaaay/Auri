@@ -1,99 +1,183 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
+import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
+
+import * as colors from '../src/colors.ts';
+import * as presentation from '../src/features/projects/project-presentation.ts';
+import * as composerLayout from '../src/features/home/message-composer-layout.ts';
 
 const read = (path) => readFile(new URL(path, import.meta.url), 'utf8');
+const AT = '2026-10-28T10:00:00.000Z';
+const assignment = {
+  id: 'assignment', projectId: 'arabic', title: 'Arabic assignment', status: 'todo',
+  dueDate: '2026-10-30', priority: 'normal', position: 0, createdAt: AT, updatedAt: AT,
+};
+const defaultSection = { id: 'overview', projectId: 'arabic', title: 'Overview', isDefault: true, status: 'active', position: 0 };
 
-test('Project home uses a neutral editorial cover field instead of an initial badge', async () => {
-  const screen = await read('../src/features/projects/project-screen.tsx');
-  const identity = screen.slice(screen.indexOf('testID="project-identity"'), screen.indexOf('<ProjectSectionNavigation'));
+async function workspace({ tasks = [assignment], notes = [], description = 'My Arabic studies.', sections = [defaultSection] } = {}) {
+  const calls = [];
+  const slots = [];
+  let cursor = 0;
+  let effects = [];
+  const project = { id: 'arabic', name: 'Arabic', description, status: 'active', timezone: 'America/Toronto', updatedAt: AT };
+  const react = {
+    useState(initial) {
+      const index = cursor++;
+      if (!(index in slots)) slots[index] = typeof initial === 'function' ? initial() : initial;
+      return [slots[index], (value) => { slots[index] = typeof value === 'function' ? value(slots[index]) : value; }];
+    },
+    useRef(initial) {
+      const index = cursor++;
+      slots[index] ??= { current: initial };
+      return slots[index];
+    },
+    useEffect(effect, dependencies) {
+      const index = cursor++;
+      if (!slots[index] || dependencies.some((value, i) => value !== slots[index][i])) {
+        slots[index] = dependencies;
+        effects.push(effect);
+      }
+    },
+  };
+  const jsx = (type, props, key) => ({ type, props, key });
+  const native = Object.fromEntries(['KeyboardAvoidingView', 'Modal', 'Pressable', 'ScrollView', 'Text', 'TextInput', 'View'].map((name) => [name, name]));
+  const imports = {
+    react,
+    'react/jsx-runtime': { jsx, jsxs: jsx, Fragment: 'Fragment' },
+    'react-native': { ...native, Alert: {}, Animated: {}, Keyboard: { dismiss() {} }, Platform: { OS: 'ios' }, StyleSheet: { create: (styles) => styles, hairlineWidth: 1 } },
+    'react-native-safe-area-context': { SafeAreaView: 'SafeAreaView' },
+    'expo-router': { useLocalSearchParams: () => ({ id: project.id }), useRouter: () => ({ replace: (path) => calls.push(['navigate', path]) }) },
+    'expo-status-bar': { StatusBar: 'StatusBar' },
+    '@/colors': colors,
+    '@/typography': { HEADING_FONT_FAMILY: 'Baskerville' },
+    '@/features/accessibility/use-reduced-motion': { useReducedMotion: () => true },
+    '@/features/home/message-composer': { MessageComposer: 'MessageComposer' },
+    '@/features/home/message-composer-layout': composerLayout,
+    '@/features/home/use-visible-viewport': { useVisibleViewport: () => null },
+    '@/services/assistant/assistant-service': { assistantService: { resetSession() {}, cancelRequest() {} } },
+    '@/services/projects/project-client': {
+      projectRepository: {
+        getProject: async (id) => { calls.push(['project', id]); return project; },
+        listTasks: async (id) => { calls.push(['tasks', id]); return tasks; },
+        listKnowledgeItems: async (id) => { calls.push(['notes', id]); return notes; },
+      },
+      projectChatService: { load: async () => ({ session: { id: 'session', projectId: project.id }, entries: [] }) },
+      projectService: { listSections: async () => sections },
+    },
+    './project-presentation': presentation,
+    './project-section-assets': { ProjectSectionAssets: 'ProjectSectionAssets' },
+    './project-section-navigation': { ProjectSectionNavigation: 'ProjectSectionNavigation' },
+    './project-sections-manager': { ProjectSectionsManager: 'ProjectSectionsManager' },
+  };
+  const source = await read('../src/features/projects/project-screen.tsx');
+  const code = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, jsx: ts.JsxEmit.ReactJSX } }).outputText;
+  const module = { exports: {} };
+  runInNewContext(code, { module, exports: module.exports, require(name) { assert.ok(name in imports, `Unexpected dependency ${name}`); return imports[name]; } });
+  const flatten = (tree) => {
+    if (Array.isArray(tree)) return tree.flatMap(flatten);
+    if (!tree || typeof tree !== 'object') return [];
+    if (typeof tree.type === 'function' && tree.type.name === 'ProjectTaskCard') return flatten(tree.type(tree.props));
+    return [tree, ...flatten(tree.props?.children)];
+  };
+  const render = () => { cursor = 0; return flatten(module.exports.default()); };
+  render();
+  effects.forEach((effect) => effect());
+  effects = [];
+  await new Promise((resolve) => setImmediate(resolve));
+  const find = (predicate) => { const node = render().find(predicate); assert.ok(node, 'Expected rendered node'); return node; };
+  const byId = (id) => find((node) => node.props?.testID === id);
+  const select = (id) => byId('project-view-navigation').props.onSelect({ id });
+  return { render, find, byId, select, calls, project };
+}
 
-  assert.match(identity, /testID="project-home-cover-fallback"/);
-  assert.match(identity, /styles\.coverPlane/);
-  assert.match(identity, /styles\.coverRulePrimary/);
-  assert.doesNotMatch(identity, /projectFallbackInitial|coverInitial|project\.name\.charAt/i);
-  assert.match(screen, /coverFallback: \{[^}]*height: 112[^}]*marginHorizontal: 20/);
+test('Project identity is centered with the existing initial, serif font, and persisted description', async () => {
+  const view = await workspace();
+  assert.equal(view.byId('project-identity').props.style.alignItems, 'center');
+  const badge = view.byId('project-home-cover-fallback');
+  assert.equal(badge.props.style.borderRadius, 32);
+  const initial = badge.props.children;
+  assert.equal(initial.props.children, 'A');
+  assert.equal(initial.props.style.fontFamily, 'Baskerville');
+  assert.equal(view.render().filter((node) => node.props?.children === view.project.description).length, 1);
+  const source = await read('../src/features/projects/project-screen.tsx');
+  assert.doesNotMatch(source, /coverPlane|coverRulePrimary|coverRuleSecondary|progressbar|% complete/);
 });
 
-test('Project description appears once in the header and no-description Projects stay quiet', async () => {
-  const screen = await read('../src/features/projects/project-screen.tsx');
-
-  assert.match(screen, /project\.description \? <Text numberOfLines=\{3\} style=\{styles\.projectDescription\}>\{project\.description\}<\/Text> : null/);
-  assert.equal((screen.match(/\{project\.description\}/g) ?? []).length, 1);
-  assert.doesNotMatch(screen, /About this Project|Add a short description|No description yet/);
-  assert.doesNotMatch(screen, /<Text[^>]*>Purpose<\/Text>/);
+test('Project tabs expose Overview, Tasks, Notes, and Files without creating persisted sections', async () => {
+  const view = await workspace();
+  assert.deepEqual(Array.from(view.byId('project-view-navigation').props.sections, ({ title }) => title), ['Overview', 'Tasks', 'Notes', 'Files']);
+  assert.deepEqual(view.calls, [['project', 'arabic'], ['tasks', 'arabic'], ['notes', 'arabic']]);
 });
 
-test('Overview uses only a persisted Project goal and never restores the file library', async () => {
-  const screen = await read('../src/features/projects/project-screen.tsx');
-  const start = screen.indexOf('{selectedSection?.isDefault ? (');
-  const end = screen.indexOf(') : selectedSection ? (', start);
-  const overview = screen.slice(start, end);
-
-  assert.match(overview, /accessibilityLabel="Project Overview"/);
-  assert.match(overview, /testID="project-overview-section"/);
-  assert.match(screen, /const overviewAnchor = project\?\.goal\?\.trim\(\);/);
-  assert.match(overview, /overviewAnchor \?/);
-  assert.match(overview, /Current focus/);
-  assert.match(overview, /\{overviewAnchor\}/);
-  assert.doesNotMatch(overview, />Overview<\/Text>|ProjectSectionAssets|asset|file|source material/i);
-  assert.doesNotMatch(overview, /task|progress|milestone|next step|where you left off/i);
+test('Overview and Tasks render the same actual assignment, Friday deadline, and status', async () => {
+  const view = await workspace();
+  view.byId('project-overview-section');
+  view.byId('project-task-assignment');
+  assert.ok(view.render().some((node) => node.props?.children === 'Upcoming'));
+  assert.ok(view.render().some((node) => node.props?.children === 'Due Friday'));
+  assert.ok(view.render().some((node) => node.props?.children === 'Not started'));
+  view.find((node) => node.type === 'Pressable' && node.props.children?.props?.children === 'View all ›').props.onPress();
+  view.byId('project-tasks-section');
+  view.byId('project-task-assignment');
+  assert.equal(view.render().filter((node) => node.props?.children === assignment.title).length, 1);
 });
 
-test('Overview has an intentional no-content state without instructional copy', async () => {
-  const screen = await read('../src/features/projects/project-screen.tsx');
-  const start = screen.indexOf('{selectedSection?.isDefault ? (');
-  const end = screen.indexOf(') : selectedSection ? (', start);
-  const overview = screen.slice(start, end);
-
-  assert.match(overview, /This space is intentionally open\./);
-  assert.doesNotMatch(overview, /add|upload|start|create|description|purpose/i);
+test('empty Projects do not receive invented assignments, notes, files, or descriptions', async () => {
+  const view = await workspace({ tasks: [], description: '' });
+  assert.ok(view.render().some((node) => node.props?.children === 'No upcoming tasks.'));
+  view.select('tasks');
+  assert.ok(view.render().some((node) => node.props?.children === 'No tasks yet.'));
+  view.select('notes');
+  assert.ok(view.render().some((node) => node.props?.children === 'No notes yet.'));
+  assert.ok(!view.render().some((node) => node.props?.children === 'Arabic assignment'));
 });
 
-test('Overview keeps a centered readable measure across phone and iPad widths', async () => {
-  const screen = await read('../src/features/projects/project-screen.tsx');
-
-  assert.match(screen, /overview: \{[^}]*alignItems: 'center'[^}]*paddingHorizontal: 20[^}]*paddingTop: 28/);
-  assert.match(screen, /overviewContent: \{[^}]*maxWidth: 640[^}]*width: '100%'/);
-  assert.match(screen, /overviewText: \{[^}]*maxWidth: 560/);
-  assert.match(screen, /overviewEmpty: \{[^}]*maxWidth: 360/);
+test('Notes shows only current saved notes', async () => {
+  const view = await workspace({ notes: [
+    { id: 'one', kind: 'note', status: 'current', content: 'Saved lesson notes' },
+    { id: 'old', kind: 'note', status: 'archived', content: 'Old note' },
+    { id: 'fact', kind: 'fact', status: 'current', content: 'A fact' },
+  ] });
+  view.select('notes');
+  assert.ok(view.render().some((node) => node.props?.children === 'Saved lesson notes'));
+  assert.ok(!view.render().some((node) => ['Old note', 'A fact'].includes(node.props?.children)));
 });
 
-test('multiple persisted sections remain horizontally usable and custom sections keep assets', async () => {
-  const [screen, navigation] = await Promise.all([
-    read('../src/features/projects/project-screen.tsx'),
-    read('../src/features/projects/project-section-navigation.tsx'),
-  ]);
-
-  assert.match(navigation, /horizontal/);
-  assert.match(navigation, /showsHorizontalScrollIndicator=\{false\}/);
-  assert.match(navigation, /sections\.map/);
-  assert.match(navigation, /content: \{ paddingHorizontal: 20 \}/);
-  assert.match(screen, /sections=\{activeSections\}/);
-  assert.match(screen, /testID="project-custom-section-surface"[\s\S]*<ProjectSectionAssets/);
+test('Files reuses original file functionality and preserves custom sections', async () => {
+  const custom = { ...defaultSection, id: 'lessons', title: 'Lessons', isDefault: false };
+  const view = await workspace({ sections: [defaultSection, custom] });
+  view.select('files');
+  const nav = view.find((node) => node.type === 'ProjectSectionNavigation' && node.props.testID === undefined);
+  nav.props.onSelect(custom);
+  const assets = view.find((node) => node.type === 'ProjectSectionAssets');
+  assert.equal(assets.props.projectId, 'arabic');
+  assert.equal(assets.props.section.id, 'lessons');
+  assert.equal(assets.props.sections.length, 2);
 });
 
-test('Overview files leave the page but retain upload and original access through Project actions', async () => {
-  const [screen, assets] = await Promise.all([
-    read('../src/features/projects/project-screen.tsx'),
-    read('../src/features/projects/project-section-assets.tsx'),
-  ]);
-
-  assert.match(screen, /testID="open-project-overview-files"/);
-  assert.match(screen, /testID="project-overview-files-access"/);
-  assert.match(screen, /function OverviewFiles[\s\S]*<ProjectSectionAssets/);
-  assert.match(assets, /testID="add-project-asset"/);
-  assert.match(assets, /testID="open-project-asset"/);
-  assert.match(assets, /openProjectAssetOriginal/);
+test('Ask Auri retains composer and New Chat while using the approved light palette', async () => {
+  const view = await workspace();
+  const panel = view.byId('project-tina-control');
+  assert.equal(panel.props.style[0].backgroundColor, colors.SOFT_WHITE);
+  assert.equal(panel.props.style[0].right, 12);
+  view.byId('open-project-tina').props.onPress();
+  assert.equal(view.byId('project-tina-control').props.style[1].left, 12);
+  assert.equal(view.byId('project-tina-control').props.style[1].height, '62%');
+  view.find((node) => node.type === 'MessageComposer');
+  view.byId('project-new-chat-button');
+  assert.equal(view.byId('project-keyboard-layout').props.behavior, 'padding');
+  const source = await read('../src/features/projects/project-screen.tsx');
+  assert.match(source, /projectChatService\.startNewSession\(session\)/);
+  assert.match(source, /projectId: project\.id/);
 });
 
-test('narrow iPhone layout keeps navigation scrollable and Ask Auri compact', async () => {
-  const screen = await read('../src/features/projects/project-screen.tsx');
-
-  assert.match(screen, /tinaPanel: \{[^}]*right: 12/);
-  assert.match(screen, /tinaPanelClosed: \{ width: 142 \}/);
-  assert.match(screen, /tinaPanelOpen: \{[^}]*left: 12/);
-  assert.doesNotMatch(screen, /tinaPanelOpen: \{[^}]*width:/);
-  assert.match(screen, /askTina: \{[^}]*minHeight: 48/);
-  assert.doesNotMatch(screen, /This Project is already in context/);
+test('task presentation preserves calendar days and does not invent missing deadlines', () => {
+  assert.equal(presentation.projectTaskDueLabel({}), null);
+  assert.equal(presentation.projectTaskDueLabel({ dueDate: '2026-10-30' }), 'Due Friday');
+  assert.equal(presentation.projectTaskStatusLabel('completed'), 'Completed');
+  const tasks = [assignment, { ...assignment, id: 'done', status: 'completed' }, { ...assignment, id: 'cancelled', status: 'cancelled' }, { ...assignment, id: 'unknown', dueDate: undefined }];
+  assert.deepEqual(presentation.upcomingProjectTasks(tasks).map(({ id }) => id), ['assignment']);
+  assert.equal(tasks.length, 4);
 });

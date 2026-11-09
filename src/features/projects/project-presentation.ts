@@ -1,4 +1,4 @@
-import type { Project } from '@/domain/projects';
+import type { Project, ProjectTask } from '@/domain/projects';
 
 export type ProjectSort = 'created' | 'name' | 'recent';
 
@@ -46,6 +46,28 @@ export function projectDescription(project: Project) {
 
 export function projectFallbackInitial(project: Pick<Project, 'name'>) {
   return project.name.trim().charAt(0).toLocaleUpperCase() || 'P';
+}
+
+export function projectTaskDueLabel(task: Pick<ProjectTask, 'dueDate'>) {
+  if (!task.dueDate) return null;
+  const date = new Date(`${task.dueDate}T00:00:00.000Z`);
+  if (Number.isNaN(date.getTime())) return null;
+  return `Due ${new Intl.DateTimeFormat('en', { timeZone: 'UTC', weekday: 'long' }).format(date)}`;
+}
+
+export function projectTaskStatusLabel(status: ProjectTask['status']) {
+  return {
+    todo: 'Not started',
+    in_progress: 'In progress',
+    blocked: 'Blocked',
+    completed: 'Completed',
+    cancelled: 'Cancelled',
+  }[status];
+}
+
+export function upcomingProjectTasks(tasks: readonly ProjectTask[]) {
+  return tasks.filter((task) => task.dueDate && task.status !== 'completed' && task.status !== 'cancelled')
+    .sort((left, right) => left.dueDate!.localeCompare(right.dueDate!) || left.position - right.position || left.id.localeCompare(right.id));
 }
 
 export function projectRecencyLabel(updatedAt: string, now = new Date()) {

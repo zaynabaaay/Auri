@@ -15,7 +15,9 @@ import {
   View,
 } from 'react-native';
 
+import { APP_BACKGROUND, DARK_BROWN, EARTHY_CLAY, LIGHT_SAGE, SOFT_BLUSH, SOFT_WHITE } from '@/colors';
 import type { ProjectAsset, ProjectGlobalAsset, ProjectSection } from '@/domain/projects';
+import { HEADING_FONT_FAMILY } from '@/typography';
 import { pickProjectDocument, pickProjectImage } from '@/services/projects/project-asset-picker';
 import { projectAssetService } from '@/services/projects/project-client';
 import {
@@ -184,7 +186,7 @@ function AssetDetail({ asset, getSignedUrl, invalidateSignedUrl, onChanged, onCl
         <Pressable onPress={cancelRename} style={styles.renameBackdrop}>
           <Pressable onPress={(event) => event.stopPropagation()} style={styles.renameSheet} testID="project-asset-rename-editor">
             <Text style={styles.renameTitle}>Rename display name</Text>
-            <TextInput autoFocus keyboardAppearance="dark" maxLength={180} onChangeText={setName} selectTextOnFocus style={styles.input} value={name} />
+            <TextInput autoFocus keyboardAppearance="light" maxLength={180} onChangeText={setName} selectTextOnFocus style={styles.input} value={name} />
             <Pressable disabled={busy || !name.trim()} onPress={() => void act(async () => {
               const updated = await projectAssetService.rename(projectId, asset.id, name);
               setEditing(false);
@@ -200,11 +202,12 @@ function AssetDetail({ asset, getSignedUrl, invalidateSignedUrl, onChanged, onCl
   );
 }
 
-export function ProjectSectionAssets({ onError, projectId, section, sections }: {
+export function ProjectSectionAssets({ onError, projectId, section, sections, title }: {
   onError: (message: string | null) => void;
   projectId: string;
   section: ProjectSection;
   sections: readonly ProjectSection[];
+  title?: string;
 }) {
   const [assets, setAssets] = useState<ProjectGlobalAsset[]>([]);
   const [urls, setUrls] = useState<Record<string, SignedAssetUrl>>({});
@@ -308,7 +311,7 @@ export function ProjectSectionAssets({ onError, projectId, section, sections }: 
 
   return <View style={styles.surface} testID="project-section-assets">
     <View style={styles.header}>
-      <View><Text style={styles.heading}>{section.title}</Text><Text style={styles.subheading}>{current.length ? `${current.length} source item${current.length === 1 ? '' : 's'}` : 'Source material lives here'}</Text></View>
+      <View><Text style={styles.heading}>{title ?? section.title}</Text><Text style={styles.subheading}>{current.length ? `${current.length} source item${current.length === 1 ? '' : 's'}` : 'No files yet'}</Text></View>
       <Pressable disabled={uploading} onPress={() => setAddOpen(true)} style={styles.add} testID="add-project-asset"><Text style={styles.addText}>{uploading ? 'Adding…' : '+ Add'}</Text></Pressable>
     </View>
     {visible.length ? <View style={styles.collection}>
@@ -344,43 +347,43 @@ export function ProjectSectionAssets({ onError, projectId, section, sections }: 
 }
 
 const styles = StyleSheet.create({
-  surface: { borderTopColor: '#18181B', borderTopWidth: StyleSheet.hairlineWidth, marginHorizontal: 20, minHeight: 260, paddingBottom: 42, paddingTop: 24 },
+  surface: { marginHorizontal: 20, minHeight: 260, paddingBottom: 42, paddingTop: 16 },
   header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
-  heading: { color: '#25364A', fontSize: 18, fontWeight: '600' },
-  subheading: { color: '#717177', fontSize: 12, marginTop: 4 },
-  add: { backgroundColor: '#1A2331', borderRadius: 16, minHeight: 34, justifyContent: 'center', paddingHorizontal: 13 },
-  addText: { color: '#AFC6E8', fontSize: 13, fontWeight: '600' },
+  heading: { color: DARK_BROWN, fontFamily: HEADING_FONT_FAMILY, fontSize: 24 },
+  subheading: { color: EARTHY_CLAY, fontSize: 12, marginTop: 4 },
+  add: { backgroundColor: LIGHT_SAGE, borderRadius: 16, minHeight: 34, justifyContent: 'center', paddingHorizontal: 13 },
+  addText: { color: EARTHY_CLAY, fontSize: 13, fontWeight: '600' },
   collection: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  imageCard: { backgroundColor: '#101012', borderColor: '#242428', borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, flexBasis: 190, flexGrow: 1, maxWidth: 360, minWidth: 145, overflow: 'hidden', paddingBottom: 11 },
-  imagePreview: { backgroundColor: '#18181B', maxHeight: 260, minHeight: 110, width: '100%' },
-  imagePlaceholder: { backgroundColor: '#18181B', height: 130 },
-  documentRow: { alignItems: 'center', backgroundColor: '#101012', borderColor: '#242428', borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, flexBasis: 300, flexDirection: 'row', flexGrow: 1, minHeight: 74, padding: 11 },
-  fileType: { alignItems: 'center', backgroundColor: '#20242B', borderRadius: 9, height: 44, justifyContent: 'center', width: 44 },
-  fileTypeText: { color: '#A9B8CE', fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
-  fileCopy: { flex: 1, marginLeft: 12 }, assetName: { color: '#E0E0E3', fontSize: 14, fontWeight: '500', lineHeight: 19, marginHorizontal: 11, marginTop: 10 },
-  assetMeta: { color: '#6F6F75', fontSize: 11, marginHorizontal: 11, marginTop: 4 },
-  chevron: { color: '#66666C', fontSize: 25 }, empty: { color: '#68686E', fontSize: 13, lineHeight: 20, maxWidth: 420, paddingVertical: 12 },
-  archivedToggle: { alignSelf: 'flex-start', marginTop: 20, minHeight: 36, justifyContent: 'center' }, archivedText: { color: '#7F8EA5', fontSize: 12, fontWeight: '600' },
+  imageCard: { backgroundColor: SOFT_WHITE, borderColor: SOFT_BLUSH, borderRadius: 13, borderWidth: StyleSheet.hairlineWidth, flexBasis: 190, flexGrow: 1, maxWidth: 360, minWidth: 145, overflow: 'hidden', paddingBottom: 11 },
+  imagePreview: { backgroundColor: APP_BACKGROUND, maxHeight: 260, minHeight: 110, width: '100%' },
+  imagePlaceholder: { backgroundColor: APP_BACKGROUND, height: 130 },
+  documentRow: { alignItems: 'center', backgroundColor: SOFT_WHITE, borderColor: SOFT_BLUSH, borderRadius: 20, borderWidth: StyleSheet.hairlineWidth, flexBasis: '100%', flexDirection: 'row', flexGrow: 1, minHeight: 84, minWidth: 0, padding: 16 },
+  fileType: { alignItems: 'center', backgroundColor: SOFT_BLUSH, borderRadius: 9, height: 44, justifyContent: 'center', width: 44 },
+  fileTypeText: { color: EARTHY_CLAY, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  fileCopy: { flex: 1, marginLeft: 12 }, assetName: { color: DARK_BROWN, fontSize: 14, fontWeight: '500', lineHeight: 19, marginHorizontal: 11, marginTop: 10 },
+  assetMeta: { color: EARTHY_CLAY, fontSize: 11, marginHorizontal: 11, marginTop: 4 },
+  chevron: { color: EARTHY_CLAY, fontSize: 25 }, empty: { color: EARTHY_CLAY, fontSize: 13, lineHeight: 20, maxWidth: 420, paddingVertical: 12 },
+  archivedToggle: { alignSelf: 'flex-start', marginTop: 20, minHeight: 36, justifyContent: 'center' }, archivedText: { color: EARTHY_CLAY, fontSize: 12, fontWeight: '600' },
   retry: { alignSelf: 'flex-start', justifyContent: 'center', minHeight: 36, marginTop: 8 },
-  actionError: { color: '#E39A8E', fontSize: 12, lineHeight: 17, marginTop: 10 },
-  backdrop: { backgroundColor: 'rgba(0,0,0,0.72)', flex: 1, justifyContent: 'flex-end' },
-  addSheet: { backgroundColor: '#111113', borderColor: '#29292D', borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingBottom: 26, paddingHorizontal: 16, paddingTop: 18 },
-  sheetTitle: { color: '#F2F2F4', fontSize: 18, fontWeight: '600', marginBottom: 12 },
-  addChoice: { borderBottomColor: '#29292D', borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 67, justifyContent: 'center' },
-  choiceTitle: { color: '#ECECEF', fontSize: 15, fontWeight: '500' }, choiceDetail: { color: '#707076', fontSize: 11, marginTop: 4 },
-  detail: { backgroundColor: '#111113', borderColor: '#29292D', borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, maxHeight: '92%', overflow: 'hidden' },
+  actionError: { color: EARTHY_CLAY, fontSize: 12, lineHeight: 17, marginTop: 10 },
+  backdrop: { backgroundColor: `${DARK_BROWN}66`, flex: 1, justifyContent: 'flex-end' },
+  addSheet: { backgroundColor: SOFT_WHITE, borderColor: SOFT_BLUSH, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingBottom: 26, paddingHorizontal: 16, paddingTop: 18 },
+  sheetTitle: { color: DARK_BROWN, fontSize: 18, fontWeight: '600', marginBottom: 12 },
+  addChoice: { borderBottomColor: SOFT_BLUSH, borderBottomWidth: StyleSheet.hairlineWidth, minHeight: 67, justifyContent: 'center' },
+  choiceTitle: { color: DARK_BROWN, fontSize: 15, fontWeight: '500' }, choiceDetail: { color: EARTHY_CLAY, fontSize: 11, marginTop: 4 },
+  detail: { backgroundColor: SOFT_WHITE, borderColor: SOFT_BLUSH, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, maxHeight: '92%', overflow: 'hidden' },
   detailContent: { paddingBottom: 24, paddingHorizontal: 16, paddingTop: 16 },
-  detailImage: { backgroundColor: '#080809', borderRadius: 12, height: 280, marginBottom: 16, width: '100%' },
-  documentHero: { alignItems: 'center', backgroundColor: '#1A1D23', borderRadius: 13, height: 120, justifyContent: 'center', marginBottom: 16 },
-  documentHeroType: { color: '#A9B8CE', fontSize: 14, fontWeight: '700', letterSpacing: 1 },
-  detailName: { color: '#F0F0F2', fontSize: 19, fontWeight: '600' }, originalName: { color: '#828288', fontSize: 12, marginTop: 6 }, metadata: { color: '#6F6F75', fontSize: 12, marginBottom: 16, marginTop: 7 },
+  detailImage: { backgroundColor: APP_BACKGROUND, borderRadius: 12, height: 280, marginBottom: 16, width: '100%' },
+  documentHero: { alignItems: 'center', backgroundColor: SOFT_BLUSH, borderRadius: 13, height: 120, justifyContent: 'center', marginBottom: 16 },
+  documentHeroType: { color: EARTHY_CLAY, fontSize: 14, fontWeight: '700', letterSpacing: 1 },
+  detailName: { color: DARK_BROWN, fontSize: 19, fontWeight: '600' }, originalName: { color: EARTHY_CLAY, fontSize: 12, marginTop: 6 }, metadata: { color: EARTHY_CLAY, fontSize: 12, marginBottom: 16, marginTop: 7 },
   renameKeyboard: { bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
-  renameBackdrop: { backgroundColor: 'rgba(0,0,0,0.38)', flex: 1, justifyContent: 'flex-end' },
-  renameSheet: { backgroundColor: '#111113', borderColor: '#29292D', borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingBottom: 20, paddingHorizontal: 16, paddingTop: 18 },
-  renameTitle: { color: '#F0F0F2', fontSize: 19, fontWeight: '600', marginBottom: 14 },
-  input: { backgroundColor: '#1B1B1E', borderColor: '#343438', borderRadius: 11, borderWidth: StyleSheet.hairlineWidth, color: '#F4F4F5', fontSize: 15, marginBottom: 11, minHeight: 47, paddingHorizontal: 13 },
-  primary: { alignItems: 'center', backgroundColor: '#8AB4F8', borderRadius: 11, justifyContent: 'center', minHeight: 45, marginBottom: 7 }, primaryText: { color: '#08111F', fontSize: 14, fontWeight: '700' },
-  row: { borderBottomColor: '#29292D', borderBottomWidth: StyleSheet.hairlineWidth, justifyContent: 'center', minHeight: 48 }, rowText: { color: '#E2E2E5', fontSize: 14 }, archiveText: { color: '#D58F86', fontSize: 14 },
-  sectionChoices: { backgroundColor: '#18181B', borderRadius: 10, padding: 6 }, sectionChoice: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 9 }, sectionChoiceText: { color: '#C9C9CD', fontSize: 13 },
-  close: { justifyContent: 'center', minHeight: 47, marginTop: 6 }, closeText: { color: '#8C8C92', fontSize: 14, textAlign: 'center' },
+  renameBackdrop: { backgroundColor: `${DARK_BROWN}66`, flex: 1, justifyContent: 'flex-end' },
+  renameSheet: { backgroundColor: SOFT_WHITE, borderColor: SOFT_BLUSH, borderTopLeftRadius: 22, borderTopRightRadius: 22, borderWidth: StyleSheet.hairlineWidth, paddingBottom: 20, paddingHorizontal: 16, paddingTop: 18 },
+  renameTitle: { color: DARK_BROWN, fontSize: 19, fontWeight: '600', marginBottom: 14 },
+  input: { backgroundColor: APP_BACKGROUND, borderColor: SOFT_BLUSH, borderRadius: 11, borderWidth: StyleSheet.hairlineWidth, color: DARK_BROWN, fontSize: 15, marginBottom: 11, minHeight: 47, paddingHorizontal: 13 },
+  primary: { alignItems: 'center', backgroundColor: LIGHT_SAGE, borderRadius: 11, justifyContent: 'center', minHeight: 45, marginBottom: 7 }, primaryText: { color: DARK_BROWN, fontSize: 14, fontWeight: '700' },
+  row: { borderBottomColor: SOFT_BLUSH, borderBottomWidth: StyleSheet.hairlineWidth, justifyContent: 'center', minHeight: 48 }, rowText: { color: DARK_BROWN, fontSize: 14 }, archiveText: { color: EARTHY_CLAY, fontSize: 14 },
+  sectionChoices: { backgroundColor: APP_BACKGROUND, borderRadius: 10, padding: 6 }, sectionChoice: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 9 }, sectionChoiceText: { color: DARK_BROWN, fontSize: 13 },
+  close: { justifyContent: 'center', minHeight: 47, marginTop: 6 }, closeText: { color: EARTHY_CLAY, fontSize: 14, textAlign: 'center' },
 });

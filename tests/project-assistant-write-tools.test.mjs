@@ -155,7 +155,7 @@ test('verified user context isolates writes across owners', async () => {
 });
 
 function openAIResponse(output) {
-  return new Response(JSON.stringify({ output }), { headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ status: 'completed', output }), { headers: { 'Content-Type': 'application/json' } });
 }
 
 function request(message, token = TOKEN) {
@@ -181,6 +181,10 @@ test('multi-step loop reads context then resolves “that task” before writing
     openAIResponse([{ content: [{ text: 'Done — I marked Send email complete.', type: 'output_text' }], type: 'message' }]),
   ];
   const response = await handleAssistantRequest(request('Mark that task done.'), { allowedOrigin: 'https://example.com', apiKey: 'key',
+    authorizeAction: async (_call, _request, steps) => {
+      assert.ok(steps.some((step) => step.outputs.some((output) => output.name === 'get_project_context')));
+      return { status: 'authorized', basis: 'explicit_request' };
+    },
     executeServerTool: (call, context) => call.name === 'get_project_context' ? read(call, context) : write(call, context),
     fetchImplementation: async () => responses.shift(), verifyAccessToken: verifyToken });
 
@@ -205,4 +209,32 @@ test('exploratory language is governed by no-write instructions and invalid auth
     executeServerTool: async () => { executions += 1; throw new Error('unexpected'); }, fetchImplementation: async () => { throw new Error('unexpected'); }, verifyAccessToken: verifyToken });
   assert.equal(rejected.status, 401);
   assert.equal(executions, 0);
+});
+
+test('a resolved correction updates the existing record through the real authorization adapter', async () => {
+  const repository = new InMemoryProjectRepository({ projects: [project()], tasks: [{ createdAt: NOW,
+    id: 'task-report', position: 0, priority: 'normal', projectId: PROJECT_ID, status: 'todo', title: 'Report', dueDate: '2026-11-02', updatedAt: NOW }] });
+  const read = createAssistantProjectToolExecutor(() => repository);
+  const write = executor(repository);
+  const user = 'Actually, make the existing Report task due November 3.';
+  let generations = 0, authorizations = 0;
+  const response = await handleAssistantRequest(request(user), {
+    allowedOrigin: 'https://example.com', apiKey: 'key', verifyAccessToken: verifyToken,
+    executeServerTool: (call, context) => call.name === 'get_project_context' ? read(call, context) : write(call, context),
+    fetchImplementation: async (_url, init) => {
+      const body = JSON.parse(String(init.body));
+      generations++;
+      if (generations === 1) return openAIResponse([{ type: 'function_call', name: 'get_project_context', call_id: 'read-correction', arguments: JSON.stringify({ focus: 'work', projectId: PROJECT_ID }) }]);
+      if (generations === 2) {
+        authorizations++;
+        assert.ok(body.input.some(item => item.type === 'function_call_output'));
+        return openAIResponse([{ type: 'function_call', name: 'manage_project_work', call_id: 'apply-correction', arguments: JSON.stringify({ action: workArgs('update_task', { entityId: 'task-report', dueDate: '2026-11-03' }), interpretation: { intent: 'explicit_request', matchesAction: true, detailsComplete: true, evidence: user, clarification: null } }) }]);
+      }
+      return openAIResponse([{ type: 'message', content: [{ type: 'output_text', text: 'Updated the Report deadline.' }] }]);
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(authorizations, 1);
+  assert.equal((await repository.getTask('task-report')).dueDate, '2026-11-03');
+  assert.equal((await repository.listTasks(PROJECT_ID)).length, 1);
 });

@@ -205,7 +205,7 @@ export class OpenAIConversationProjectAnalyzer implements ConversationProjectAna
       [
         `Analyze only the supplied messages for the existing Project named "${input.project.name}".`,
         'Write one concise work-session title and summary containing only this Project’s discussion, progress, confirmed context, unresolved questions, and useful next considerations.',
-        'Do not copy the transcript and do not mention unrelated topics.',
+        'Do not copy the transcript and do not mention unrelated topics. This is historical capture only: candidates remain pending evidence, not authorized Tasks or accepted Project truth. Describe what was discussed; never claim this processing created, saved, or updated actionable records.',
         'Compare every candidate with current Project state before classifying it.',
         'Use already_known for existing truth or work even when paraphrased. Do not duplicate it.',
         'Use clear_update only for an explicit, unambiguous replacement of an identified current knowledge item.',
